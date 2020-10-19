@@ -3,6 +3,7 @@ import json
 from util import str_to_date, max_of_day, sort_dict
 import unittest
 from collections import defaultdict
+from functools import lru_cache
 
 
 class SlidingNotPossible(Exception):
@@ -13,7 +14,7 @@ class SlidingNotPossible(Exception):
 
 class CodeChange:
     """
-    The class to represent code changes as an object. 
+    The class to represent code changes as an object.
 
     Attributes
     ----------
@@ -62,7 +63,7 @@ class CodeChange:
 
 class ChangeSet:
     """
-    The class to represent change sets as an object. 
+    The class to represent change sets as an object.
 
     Attributes
     ----------
@@ -125,14 +126,14 @@ class ChangeSet:
 class DataManager:
     """
     The class to handle data related issues while using sliding window approach.
-    
+
     Attributes
     ----------
     dataset_path (str):
         Path of the dataset to read.
 
     sliding_window_size (int):
-        Size (range) of the sliding window in days. 
+        Size (range) of the sliding window in days.
     """
 
     def __init__(self, dataset_path, sliding_window_size):
@@ -140,13 +141,15 @@ class DataManager:
         Initialize the DataManager object. Look at the class docstring for details.
         """
 
-        self._dataset_path = dataset_path
         self._sliding_window_size = sliding_window_size
-        self._date_to_change_sets = self._generate_date_to_change_sets()
+        self._date_to_change_sets = DataManager._generate_date_to_change_sets(
+            dataset_path
+        )
         self._first_date = None  # First included date
         self._last_date = None  # Last included date
 
-    def _generate_date_to_change_sets(self):
+    @lru_cache(maxsize=None)
+    def _generate_date_to_change_sets(dataset_path):
         """
         Generate a dictionary for the pairs of date and change sets committed that date.
 
@@ -156,7 +159,7 @@ class DataManager:
             A sorted (by date) dictionary for date and change sets pairs.
         """
 
-        with open(self._dataset_path, encoding="utf8") as f:
+        with open(dataset_path, encoding="utf8") as f:
             change_set_jsons = json.load(f)["change_sets"]
 
         date_to_change_sets = defaultdict(list)
@@ -179,7 +182,7 @@ class DataManager:
                 change_set_json["num_current_files"],
             )
 
-            date_to_change_sets[change_set.date].append(change_set)
+            date_to_change_sets[max_of_day(change_set.date)].append(change_set)
 
         # Fill the blanks with empty lists
         dates = list(date_to_change_sets)
@@ -250,18 +253,42 @@ class DataManager:
         )
 
         change_sets = []
-        for date in self._date_to_change_sets:
+        date = self._first_date
+        while True:
             if date > self._last_date:
                 break
-
             change_sets.extend(self._date_to_change_sets[date])
+            date += timedelta(days=1)
+
+        return change_sets
+
+    def get_specific_window(self, start_date, end_date):
+        """
+        Generate the sliding window for the given start and end date (inclusive).
+
+        Returns
+        -------
+        list:
+            Change sets (sorted by date in ascending order) between given dates.
+        """
+
+        assert start_date in self._date_to_change_sets, "start_date not in data"
+        assert end_date in self._date_to_change_sets, "end_date not in data"
+
+        change_sets = []
+        date = start_date
+        while True:
+            if date > end_date:
+                break
+            change_sets.extend(self._date_to_change_sets[date])
+            date += timedelta(days=1)
 
         return change_sets
 
     def can_slide(self):
         """
         Check if sliding the window one more day is possible or not.
-        
+
         Returns
         -------
         bool:

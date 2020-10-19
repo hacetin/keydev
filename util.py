@@ -13,13 +13,13 @@ default_date_format = "%Y-%m-%dT%H:%M:%SZ"
 def str_to_date(date_str, date_format=default_date_format):
     """
     The function to convert time string to datetime object.
-    
+
     Parameters
     ----------
     date_str (str):
         Date string in the appropriate format.
     date_format (str):
-        Date format (proper for datetime module) of the given string. 
+        Date format (proper for datetime module) of the given string.
         Its default is "%Y-%m-%dT%H:%M:%SZ".
 
     Return
@@ -33,7 +33,7 @@ def str_to_date(date_str, date_format=default_date_format):
 def date_to_str(date, date_format=default_date_format):
     """
     The function to convert the given datetime object to string.
-    
+
     Parameters
     ----------
     date (datetime.datetime):
@@ -52,9 +52,9 @@ def date_to_str(date, date_format=default_date_format):
 
 def max_of_day(date):
     """
-    The function to create a copy of the given date with the last hour, 
+    The function to create a copy of the given date with the last hour,
     the last minute, the last second and the last milisecond of the day.
-    
+
     Parameters
     ----------
     date (datetime.datetime):
@@ -63,7 +63,7 @@ def max_of_day(date):
     Return
     ------
     datetime.datetime:
-        A copy of the given date with the last hour, the last minute, 
+        A copy of the given date with the last hour, the last minute,
         the last second and the last milisecond of the day.
     """
     return datetime.combine(date, time.max)
@@ -78,8 +78,8 @@ def highest_k(d, k):
     d (dict):
         Dictionary with comparable values
     k (int):
-        Number representing how many values will be returned. If the number of values 
-        in `d` is more than `k`, the function return all values. 
+        Number representing how many values will be returned. If the number of values
+        in `d` is more than `k`, the function return all values.
 
     Returns
     -------
@@ -119,7 +119,7 @@ def execute_db_query(dbpath, query):
 
 def sort_dict(d, by_value=False, reverse=False):
     """
-    Sort the given dictionary. 
+    Sort the given dictionary.
     If `by_value=True`, sort by values. Othwerwise sort by keys.
     If `reverse=True`, sort in descending order. Otherwise sort in ascending order.
 
@@ -147,7 +147,7 @@ def sort_dict(d, by_value=False, reverse=False):
         return {k: d[k] for k in sorted(d, reverse=reverse)}
 
 
-class TestHistoryGraph(unittest.TestCase):
+class TestUtil(unittest.TestCase):
     def test_sort_dict(self):
         d = {1: 10, 2: 11, 4: 8, 3: 9}
 

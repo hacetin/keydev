@@ -8,7 +8,7 @@ random.seed(2020)
 
 def accuracy(set1, set2):
     """
-    Calculate intersection ratio of set1 and set2 over set1. 
+    Calculate intersection ratio of set1 and set2 over set1.
     For example, return 0.75 if "set1={1,2,3,4}" and "set2={1,2,3,5,6,7}"
 
     Parameters
@@ -96,7 +96,7 @@ def generate_date_to_intersection(date_to_results):
 
     Returns
     -------
-    dict: 
+    dict:
         Mapping from date to intersection developers that date.
     """
 
@@ -123,9 +123,9 @@ def generate_date_to_intersection(date_to_results):
 def validation(date_to_key_developers, date_to_top_commenters, date_to_developers):
     """
     Perform validation by considering the top commenters as the ground truth (actually,
-    it is a pseudo ground truth). Also, perform Monte Carlo simulation. 
+    it is a pseudo ground truth). Also, perform Monte Carlo simulation.
 
-    Then, print a topk accuracy table for the given key developers and another topk 
+    Then, print a topk accuracy table for the given key developers and another topk
     accuracy table for monte carlo simulation.
 
     Parameters
@@ -136,7 +136,7 @@ def validation(date_to_key_developers, date_to_top_commenters, date_to_developer
 
     date_to_top_commenters (dict):
         Mapping from dates to top commenters in the sliding window ending that date.
-        
+
     date_to_developers (dict):
         Mapping from dates to all developers in the sliding window ending that date.
     """
@@ -182,7 +182,7 @@ def validation(date_to_key_developers, date_to_top_commenters, date_to_developer
 
 
 if __name__ == "__main__":
-    for project_name in ["hadoop", "hive", "pig"]:
+    for project_name in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
         print("\n\n*****************", project_name.upper(), "*****************")
 
         print("Reading experiment results.")
@@ -214,4 +214,3 @@ if __name__ == "__main__":
             validation(
                 date_to_key_developers, date_to_top_commenters, date_to_developers
             )
-

@@ -1,4 +1,3 @@
-import sqlite3
 import json
 from util import execute_db_query
 from collections import defaultdict
@@ -12,7 +11,7 @@ def get_commit_to_issues(project_name):
     ----------
     project_name (str):
         Name of the project. "<project_name>.sqlite3" has to be in data folder.
-    
+
     Returns
     -------
     dict:
@@ -41,7 +40,7 @@ def get_commit_to_codechanges(project_name):
     ----------
     project_name (str):
         Name of the project. "<project_name>.sqlite3" has to be in data folder.
-    
+
     Returns
     -------
     dict:
@@ -74,11 +73,11 @@ def get_commits(project_name):
     ----------
     project_name (str):
         Name of the project. "<project_name>.sqlite3" has to be in data folder.
-    
+
     Returns
     -------
     list:
-        Tuples of commit hash, author and date in temporal order. 
+        Tuples of commit hash, author and date in temporal order.
         For example, "[(commit1, author1, 12Oct2013), (commit2, author1, 19Oct2013)]"
     """
 
@@ -106,7 +105,7 @@ def extract_change_sets(project_name, author_mapping):
     ----------
     project_name (str):
         Name of the project. "<project_name>.sqlite3" has to be in data folder.
-    
+
     Returns
     -------
     str:
@@ -326,12 +325,63 @@ hadoop_author_mapping = {
     "zhezhang": "zhe zhang",
 }
 
+hbase_author_mapping = {
+    "andrew purtell": "andrew kyle purtell",
+    "anoopsjohn": "anoopsamjohn",
+    "apekshit": "apekshit(appy) sharma",
+    "apekshit sharma": "apekshit(appy) sharma",
+    "chenyechao": "yechao chen",
+    "chiaping tsai": "chia-ping tsai",
+    "churro": "rahul gidwani",
+    "ckulkarni": "chinmay kulkarni",
+    "dskskv": "chetkhatri",
+    "eclark": "elliott clark",
+    "gjacoby": "geoffrey",
+    "jeffrey": "jeffrey zhong",
+    "jxiang": "jimmy xiang",
+    "jonathan hsieh": "jonathan m hsieh",
+    "jyates": "jesse yates",
+    "keith winkler": "keith david winkler",
+    "liangxie": "xieliang",
+    "mbertozzi": "matteo bertozzi",
+    "ndimiduk": "nick dimiduk",
+    "nke": "nkeywal",
+    "rahulgidwani": "rahul gidwani",
+    "rajeshbabu": "rajeshbabu chintaguntla",
+    "reid": "reid chan",
+    "rgidwani": "rahul gidwani",
+    "smaddineni": "sukumar maddineni",
+    "stack": "michael stack",
+    "ted yu": "zhihong yu",
+    "tedyu": "zhihong yu",
+    "thiruvel": "thiruvel thirumoolan",
+    "tom tsuruhara": "tomu tsuruhara",
+    "unknown": "rsvasude",
+    "xiaowen147": "yun zhao",
+    "vasudevan": "ramkrishna",
+    "yi deng": "david deng",
+}
+
+derby_author_mapping = {}
+
+zookeeper_author_mapping = {
+    "andor molnár": "andor molnar",
+    "flavio junqueira": "flavio paiva junqueira",
+    "fpj": "flavio paiva junqueira",
+    "patrick hunt": "patrick d. hunt",
+    "raúl gutiérrez segalés": "raul gutierrez segales",
+    "raúl gutierrez s": "raul gutierrez segales",
+    "robert evans": "robert (bobby) evans",
+}
 
 if __name__ == "__main__":
     for dataset_name, author_mapping in [
         ("pig", pig_author_mapping),
         ("hive", hive_author_mapping),
         ("hadoop", hadoop_author_mapping),
+        ("hbase", hbase_author_mapping),
+        ("derby", derby_author_mapping),
+        ("zookeeper", zookeeper_author_mapping),
     ]:
         # First, extract commits and generate a JSON formatted string.
         text = extract_change_sets(dataset_name, author_mapping)

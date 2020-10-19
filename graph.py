@@ -3,14 +3,18 @@ import json
 import unittest
 from itertools import combinations
 from data_manager import DataManager, SlidingNotPossible
+from scipy.stats import shapiro
 from collections import defaultdict
+from datetime import datetime
+from functools import lru_cache
+from util import max_of_day
 
 
 class HistoryGraph:
     """
-    This class keeps track of changes in a software project. 
+    This class keeps track of changes in a software project.
     The data must be supplied in "dataset_path".
-    
+
     Attributes
     ----------
     dataset_path (str):
@@ -23,7 +27,7 @@ class HistoryGraph:
         Limit used in file reachability DFS.
 
     num_files_limit (int):
-        Limit for handling the large change sets. The change sets that modify or change 
+        Limit for handling the large change sets. The change sets that modify or change
         files more than this limit are ignored and not added to thr graph.
 
     score_threshold (float):
@@ -31,9 +35,10 @@ class HistoryGraph:
 
     Example Usage
     -------------
+    Traversing all dataset:
     ```
     G = HistoryGraph(dataset_path=<path-to-dataset>)
-    
+
     while True:
         # Do your stuff here
 
@@ -60,19 +65,6 @@ class HistoryGraph:
         self._score_threshold = score_threshold
         self._number_of_files_in_project = 0
 
-        # Attribute to keep generated data. Pregenerated data can be used again and
-        # again. These have to be deleted while sliding the window.
-        self._current_data = {
-            "devG": None,
-            "dev_to_reachable_files": None,
-            "dev_to_rare_files": None,
-            "file_to_devs": None,
-            "node_kinds": None,
-            "jacks": None,
-            "mavens": None,
-            "connectors": None,
-        }
-
         # Create data manager instance to handle the sliding window approach
         self._data_manager = DataManager(dataset_path, graph_range_in_days)
 
@@ -88,9 +80,9 @@ class HistoryGraph:
         ----------
         kind(str):
             Desired node kind.
-            
+
         G (networkx.Graph):
-            Graph to find the kinds of its nodes. If no graph is given, the default 
+            Graph to find the kinds of its nodes. If no graph is given, the default
             is the whole artifact graph.
 
         Returns
@@ -102,6 +94,12 @@ class HistoryGraph:
             G = self._G
 
         return [node for node, k in G.nodes(data="kind") if k == kind]
+
+    def _filter_edges_by_kind(self, kind, G=None):
+        if G == None:
+            G = self._G
+
+        return [(node1, node2) for node1, node2, k in G.edges(data="kind") if k == kind]
 
     def _initialize_graph(self):
         """
@@ -155,7 +153,7 @@ class HistoryGraph:
 
             # The edges between developers and change set will have zero (0) distance.
             # So, date of these edges will be None.
-            self._G.add_edge(cs.author, cs.commit_hash, date=None)
+            self._G.add_edge(cs.author, cs.commit_hash, date=None, kind="commit")
 
             # Does not affect the existing nodes
             self._G.add_nodes_from(files_add_modify, kind="File")
@@ -191,7 +189,7 @@ class HistoryGraph:
 
     def _remove_nodes(self, nodes):
         """
-        Remove the given nodes. 
+        Remove the given nodes.
         Then, remove the nodes with no edge (i.e. unconnected nodes).
 
         Parameters
@@ -224,10 +222,10 @@ class HistoryGraph:
 
     def _which_day(self, edge_date):
         """
-        Get the number of days passed from the start date of the graph to 
+        Get the number of days passed from the start date of the graph to
         `edge_date` (including `edge_date`). For example, return 5 if the start
         date of the graph is 24 Nov 2012 and the `edge_date` is 29 Nov 2012.
-        
+
         Parameters
         ----------
         edge_date (datetime.datetime):
@@ -247,12 +245,12 @@ class HistoryGraph:
     def _calculate_distance(self, edge_date):
         """
         Return a distance inversely proportional to recency. (distance = 1 / recency)
-        
+
         Parameters
         ----------
         edge_date (datetime.datetime):
             Date to calculate distance depending on its recency.
-        
+
         Returns
         -------
         float:
@@ -264,20 +262,15 @@ class HistoryGraph:
             return 0
 
         recency = self._which_day(edge_date) / self._graph_range_in_days
+        return 1 / recency
 
-        if recency == 0:
-            distance = float("inf")
-        else:
-            distance = 1 / recency
-
-        return distance
-
-    def _find_reachable_files(self, developer):
-        """ 
-        Return the list of reachable files by the given developer. 
+    @lru_cache(maxsize=None)
+    def find_reachable_files(self, developer):
+        """
+        Return the list of reachable files by the given developer.
         Starting from the developer node (source node), iterate over edges in a depth
         first search (DFS) manner until reaching the "distance limit" or until reaching
-        another developer node. 
+        another developer node.
 
         Parameters
         ----------
@@ -331,8 +324,8 @@ class HistoryGraph:
         Returns
         ------
         dict:
-            Dictionary for developers pairs and RSRD distance between them. 
-            For example, `{(d1,d2): 0.25, (d1,d3): 0.50, (d2,d3): 0.75}` 
+            Dictionary for developers pairs and RSRD distance between them.
+            For example, `{(d1,d2): 0.25, (d1,d3): 0.50, (d2,d3): 0.75}`
         """
 
         devs = set(self.get_developers())
@@ -358,6 +351,7 @@ class HistoryGraph:
 
         return dev_pair2rsrd
 
+    @lru_cache(maxsize=1)
     def _get_node_kinds(self):
         """
         Get node kinds in the artifact graph. Generate the dictionary if it is not
@@ -369,10 +363,7 @@ class HistoryGraph:
             Mapping from the nodes in the artifact graph to their kinds.
         """
 
-        if self._current_data["node_kinds"] == None:
-            self._current_data["node_kinds"] = nx.get_node_attributes(self._G, "kind")
-
-        return self._current_data["node_kinds"]
+        return nx.get_node_attributes(self._G, "kind")
 
     def _sort_and_filter(self, d):
         """
@@ -399,11 +390,11 @@ class HistoryGraph:
         """
         Update the graph by removing the components from the first included day
         and adding the components for the day after the last included day.
-        
+
         Returns
         -------
         bool:
-            False if sliding is not possible, otherwise return True. 
+            False if sliding is not possible, otherwise return True.
         """
 
         # Try to slide the window one day.
@@ -420,14 +411,60 @@ class HistoryGraph:
             self._number_of_files_in_project = change_sets_add[-1].num_files_in_project
 
         # Clear the things related to the previous day.
-        for key in self._current_data:
-            self._current_data[key] = None
+        self._clear_cache()
+
         return True
 
+    def forward_until(self, target_date):
+        """
+        Update the graph day by day until the target day is the last included day
+        in the graph.
+
+        If sliding is not possible until the given date, this meydo will slide the
+        graph until the last possible date.
+
+        Parameters
+        ----------
+        target_date (datetime.datetime):
+            Last date to be included in the graph after the operation.
+
+        Returns
+        -------
+        bool:
+            False if sliding isn't possible until the given date, otherwise return True.
+        """
+        target_date = max_of_day(target_date)
+        while True:
+            if self.get_last_included_date() >= target_date:
+                return True
+
+            if not self.forward_graph_one_day():
+                return False
+
+    def _clear_cache(self):
+        """
+        Clear all the items cached using `functools.lru_cache`.
+        """
+        for fun in [
+            self._get_node_kinds,
+            self.get_file_to_devs,
+            self.get_dev_to_reachable_files,
+            self.get_dev_to_rare_files,
+            self.get_developer_graph,
+            self.get_jacks,
+            self.get_mavens,
+            self.get_connectors,
+            self.balanced_or_hero,
+            self.find_replacement,
+            self.find_reachable_files,
+        ]:
+            fun.cache_clear()
+
+    @lru_cache(maxsize=1)
     def get_file_to_devs(self):
         """
-        Get a dictionary for files and developers reached them. 
-        
+        Get a dictionary for files and developers reached them.
+
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
@@ -438,23 +475,21 @@ class HistoryGraph:
             reached them. For example, `{f1:[d1], f2:[d1], f3:[d2], f4:[d1,d2]}`
         """
 
-        if self._current_data["file_to_devs"] == None:
-            dev_to_files = self.get_dev_to_reachable_files()
-            file_to_devs = defaultdict(list)
-            for dev in dev_to_files:
-                reachable_files = dev_to_files[dev]
-                for f in reachable_files:
-                    file_to_devs[f].append(dev)
+        dev_to_files = self.get_dev_to_reachable_files()
+        file_to_devs = defaultdict(list)
+        for dev in dev_to_files:
+            reachable_files = dev_to_files[dev]
+            for f in reachable_files:
+                file_to_devs[f].append(dev)
 
-            self._current_data["file_to_devs"] = file_to_devs
+        return file_to_devs
 
-        return self._current_data["file_to_devs"]
-
+    @lru_cache(maxsize=1)
     def get_dev_to_reachable_files(self):
         """
         Get a dictionary for developers and the reachable files by them. For each
         developer run a DFS to find reachable files.
-        
+
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
@@ -465,14 +500,13 @@ class HistoryGraph:
             by them. For example, `{d1:[f1, f2, f4], d2:[f3, f4]}`
         """
 
-        if self._current_data["dev_to_reachable_files"] == None:
-            dev_to_reachable_files = {}
-            for dev in self.get_developers():
-                dev_to_reachable_files[dev] = self._find_reachable_files(dev)
-            self._current_data["dev_to_reachable_files"] = dev_to_reachable_files
+        dev_to_reachable_files = {}
+        for dev in self.get_developers():
+            dev_to_reachable_files[dev] = self.find_reachable_files(dev)
 
-        return self._current_data["dev_to_reachable_files"]
+        return dev_to_reachable_files
 
+    @lru_cache(maxsize=1)
     def get_dev_to_rare_files(self):
         """
         Get a dictionary for developers and their rarely reached files.
@@ -484,23 +518,20 @@ class HistoryGraph:
         -------
         dict:
             Mapping from the developers in the artifact graph to the rarely reached
-            files reached by them. For example, `{d1:[f1, f2], d2:[f3]}` 
+            files reached by them. For example, `{d1:[f1, f2], d2:[f3]}`
         """
 
-        if self._current_data["dev_to_rare_files"] == None:
-            file_to_devs = self.get_file_to_devs()
+        file_to_devs = self.get_file_to_devs()
+        dev_to_rarefiles = defaultdict(list)
+        for f in file_to_devs:
+            devs = file_to_devs[f]
+            if len(devs) == 1:
+                dev = devs[0]
+                dev_to_rarefiles[dev].append(f)
 
-            dev_to_rarefiles = defaultdict(list)
-            for f in file_to_devs:
-                devs = file_to_devs[f]
-                if len(devs) == 1:
-                    dev = devs[0]
-                    dev_to_rarefiles[dev].append(f)
+        return dev_to_rarefiles
 
-            self._current_data["dev_to_rare_files"] = dev_to_rarefiles
-
-        return self._current_data["dev_to_rare_files"]
-
+    @lru_cache(maxsize=1)
     def get_developer_graph(self):
         """
         Get the developer graph where developers are the nodes and distances are the
@@ -516,19 +547,36 @@ class HistoryGraph:
             Graph with nodes for developers and edges for RSRD values between them.
         """
 
-        if self._current_data["devG"] == None:
-            dev_pair2distances = self._calculate_rsrd_distances()
-            edge_list = [
-                (dev1, dev2, {"distance": float(distance)})
-                for (dev1, dev2), distance in dev_pair2distances.items()
-                if float(distance) > 0
-            ]
-            devG = nx.Graph()
-            devG.add_edges_from(edge_list)
+        dev_pair2distances = self._calculate_rsrd_distances()
+        edge_list = [
+            (dev1, dev2, {"distance": float(distance)})
+            for (dev1, dev2), distance in dev_pair2distances.items()
+            if float(distance) > 0
+        ]
+        devG = nx.Graph()
+        devG.add_edges_from(edge_list)
 
-            self._current_data["devG"] = devG
+        return devG
 
-        return self._current_data["devG"]
+    def get_dev_to_reachable_devs(self):
+        """
+        Get a dictionary for developers and developers reached by them
+        in developer graph.
+
+        Returns
+        -------
+        dict:
+            Mapping from the developers to the list of developers who have a direct
+            connection in the developer graph.
+        """
+
+        devG = self.get_developer_graph()
+        dev_to_reachable_devs = {}
+        for dev in devG:
+            reachable_devs = [d for d in devG[dev]]
+            dev_to_reachable_devs[dev] = reachable_devs
+
+        return dev_to_reachable_devs
 
     def get_developers(self):
         """
@@ -582,14 +630,43 @@ class HistoryGraph:
 
     def get_num_nodes(self):
         """
-        Get the number of nodes in the current artifact graph. 
+        Get the number of nodes in the current artifact graph.
 
         Returns
         -------
         int:
-            Number of nodes in the current artifact graph. 
+            Number of nodes in the current artifact graph.
         """
         return self._G.number_of_nodes()
+
+    def get_num_edges(self):
+        """
+        Get the number of nodes in the current artifact graph.
+
+        Returns
+        -------
+        int:
+            Number of nodes in the current artifact graph.
+        """
+        return self._G.number_of_edges()
+
+    def get_num_reachable_files(self):
+        """
+        Get the number of files reached at least one developer.
+
+        Returns
+        -------
+        int:
+            Number of reachable files
+        """
+
+        dev_to_reachable_files = self.get_dev_to_reachable_files()
+
+        all_reachable_files = set()
+        for files in dev_to_reachable_files.values():
+            all_reachable_files.update(files)
+
+        return len(all_reachable_files)
 
     def get_num_rare_files(self):
         """
@@ -619,6 +696,7 @@ class HistoryGraph:
     # JACK
     #
 
+    @lru_cache(maxsize=1)
     def get_jacks(self):
         """
         Get a dictionary for the jacks and their file coverage scores. The developers
@@ -631,79 +709,225 @@ class HistoryGraph:
         Returns
         -------
         dict:
-            A sorted (by file coverage) dictionary for the developers and 
+            A sorted (by file coverage) dictionary for the developers and
             their file coverage scores.
         """
 
-        if self._current_data["jacks"] == None:
-            dev_to_files = self.get_dev_to_reachable_files()
-            len_files = self.get_num_files()
-            dev_to_file_coverage = {}
-            for dev, reachable_files in dev_to_files.items():
-                dev_to_file_coverage[dev] = len(reachable_files) / len_files
+        dev_to_files = self.get_dev_to_reachable_files()
+        len_files = self.get_num_files()
+        dev_to_file_coverage = {}
+        for dev, reachable_files in dev_to_files.items():
+            dev_to_file_coverage[dev] = len(reachable_files) / len_files
 
-            self._current_data["jacks"] = self._sort_and_filter(dev_to_file_coverage)
+        return self._sort_and_filter(dev_to_file_coverage)
 
-        return self._current_data["jacks"]
+    def find_last_sig_jack(self):
+        """
+        Get the name of the last significant jack according to Pareto principle
+        on reachable files in the artifact graph.
+
+        Returns
+        -------
+        str:
+            The name of developer
+        """
+
+        dev_to_reachable_files = self.get_dev_to_reachable_files()
+        num_reachable_files = self.get_num_reachable_files()
+        jacks = self.get_jacks()
+
+        covered_files = set()
+        for jack in jacks:
+            covered_files.update(dev_to_reachable_files[jack])
+            if len(covered_files) / num_reachable_files >= 0.8:
+                return jack
 
     #
     # MAVEN
     #
 
+    @lru_cache(maxsize=1)
     def get_mavens(self):
         """
         Get a dictionary for the developers and their mavenness scores. The developers
         whose scores are less than the score threshold are ignored and removed from
         the dictionary.
-        
+
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
         Returns
         -------
         dict:
-            A sorted (by mavenness score) dictionary for the developers and 
+            A sorted (by mavenness score) dictionary for the developers and
             their mavenness scores.
         """
-        if self._current_data["mavens"] == None:
-            dev_to_rare_files = self.get_dev_to_rare_files()
-            num_rare_files = self.get_num_rare_files()
-            dev_to_mavenness = {}
-            for dev, rare_files in dev_to_rare_files.items():
-                dev_to_mavenness[dev] = len(rare_files) / num_rare_files
+        dev_to_rare_files = self.get_dev_to_rare_files()
+        num_rare_files = self.get_num_rare_files()
+        dev_to_mavenness = {}
+        for dev, rare_files in dev_to_rare_files.items():
+            dev_to_mavenness[dev] = len(rare_files) / num_rare_files
 
-            self._current_data["mavens"] = self._sort_and_filter(dev_to_mavenness)
+        return self._sort_and_filter(dev_to_mavenness)
 
-        return self._current_data["mavens"]
+    def find_last_sig_maven(self):
+        """
+        Get the name of the last significant maven according to Pareto principle
+        on rarely reached files in the artifact graph.
+
+        Returns
+        -------
+        str:
+            The name of developer
+        """
+
+        dev_to_rare_files = self.get_dev_to_rare_files()
+        num_rare_files = self.get_num_rare_files()
+        mavens = self.get_mavens()
+
+        covered_rare_files = set()
+        for maven in mavens:
+            covered_rare_files.update(dev_to_rare_files[maven])
+            if len(covered_rare_files) / num_rare_files >= 0.8:
+                return maven
 
     #
     # CONNECTOR
     #
 
+    @lru_cache(maxsize=1)
     def get_connectors(self):
         """
         Get a dictionary for the developers and their betweenness centrality in
         developer graph. The developers whose scores are less than the score
-        threshold are ignoredand removed from the dictionary. 
-        
+        threshold are ignoredand removed from the dictionary.
+
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
         Returns
         -------
         dict:
-            Sorted (by betweenness centrality) dictionary for the developers and 
+            Sorted (by betweenness centrality) dictionary for the developers and
             their betweenness centrality in the developer graph.
         """
-        if self._current_data["connectors"] == None:
-            devG = self.get_developer_graph()
-            dev_to_betweenness = nx.betweenness_centrality(
-                devG, weight="distance", normalized=True
+        devG = self.get_developer_graph()
+        dev_to_betweenness = nx.betweenness_centrality(
+            devG, weight="distance", normalized=True
+        )
+
+        return self._sort_and_filter(dev_to_betweenness)
+
+    def find_last_sig_connector(self):
+        """
+        Get the name of the last significant connector according to Pareto principle
+        on developers in the developer graph.
+
+        Returns
+        -------
+        str:
+            Name of developer
+        """
+
+        dev_to_reachable_devs = self.get_dev_to_reachable_devs()
+        num_developers = len(self.get_developers())
+        connectors = self.get_connectors()
+
+        covered_developers = set()
+        for connector in connectors:
+            covered_developers.update([connector])
+            covered_developers.update(dev_to_reachable_devs[connector])
+            if len(covered_developers) / num_developers >= 0.8:
+                return connector
+
+    #
+    #  BALANCED OR HERO
+    #
+
+    @lru_cache(maxsize=1)
+    def balanced_or_hero(self):
+        """
+        Test if the tean is balanced or hero team according to Shapiro-Wilk test.
+        If the test reject the H0 (the file coverages are normally distributed),
+        the team is hero. Otherwise, the team is balanced.
+
+        Returns
+        -------
+        str | None:
+            "balanced" or "hero" if number of developers is more than or equal to 3.
+            Otherwise, None.
+        """
+
+        jacks = self.get_jacks()
+        if len(jacks) < 3:
+            return None
+
+        file_coverages = list(jacks.values())
+        alpha = 0.05
+        stat, p = shapiro(file_coverages)
+
+        if p > alpha:
+            return "balanced"  # Gaussian-like
+        else:
+            return "hero"  # Reject
+
+    #
+    #  REPLACEMENT / SUCCESSOR
+    #
+
+    @lru_cache(maxsize=None)
+    def find_replacement(self, developer):
+        """
+        Return a dictionary for developer and coverage ratios sorted by ratios.
+        Coverage ratio is the ratio of the files reached by the developer and the
+        files reached by the developer given as parameter.
+
+        Parameters
+        ----------
+        developer (str):
+            Developer name that is in the current artifact graph.
+
+        Returns
+        -------
+        dict | None:
+            Sorted (by coverage score) dictionary for developers (other than the
+            given developer) and their file coverage (on the files of the given
+            developer) scores. If the number of other developers is less than or
+            equal to 5, None.
+        """
+
+        dev_to_files = self.get_dev_to_reachable_files()
+
+        assert (
+            developer in dev_to_files
+        ), "Given developer does not exist in the artifact graph: {}".format(developer)
+
+        developer_files = set(dev_to_files[developer])
+        if len(developer_files) == 0:
+            return None
+
+        other_devs = self.get_developers()
+        other_devs.remove(developer)
+
+        if len(other_devs) < 5:
+            return None
+
+        dev_to_coverage = {}
+        for dev in other_devs:
+            dev_files = dev_to_files[dev]
+            coverage = len(developer_files.intersection(dev_files)) / len(
+                developer_files
             )
+            dev_to_coverage[dev] = coverage
 
-            self._current_data["connectors"] = self._sort_and_filter(dev_to_betweenness)
+        dev_to_coverage = {
+            dev: dev_to_coverage[dev]
+            for dev in sorted(
+                dev_to_coverage, key=lambda x: dev_to_coverage[x], reverse=True
+            )
+        }
 
-        return self._current_data["connectors"]
+        return dev_to_coverage
 
 
 class TestHistoryGraph(unittest.TestCase):
@@ -820,6 +1044,30 @@ class TestHistoryGraph(unittest.TestCase):
             sample_result = json.load(f)
 
         assert TestHistoryGraph.compare(result, sample_result), "Wrong result"
+
+    def test_reachable_files_specific_date(self):
+        G = HistoryGraph(
+            "data/test_data/sample_graph.json",
+            graph_range_in_days=300,
+            distance_limit=10,
+        )
+
+        G.forward_until(datetime(2019, 10, 12))
+
+        dev_to_files = G.get_dev_to_reachable_files()
+        files = G.get_files()
+        result31 = {"dev_to_files": dev_to_files, "files": files}
+
+        G.forward_graph_one_day()
+
+        dev_to_files = G.get_dev_to_reachable_files()
+        files = G.get_files()
+        result32 = {"dev_to_files": dev_to_files, "files": files}
+
+        with open("data/test_data/sample_reachable_files.json", "r") as f:
+            sample_result = json.load(f)
+        assert TestHistoryGraph.compare(result31, sample_result["31"]), "Wrong result"
+        assert TestHistoryGraph.compare(result32, sample_result["32"]), "Wrong result"
 
 
 if __name__ == "__main__":

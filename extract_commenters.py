@@ -1,5 +1,12 @@
 from data_manager import DataManager, SlidingNotPossible
-from preprocess import pig_author_mapping, hive_author_mapping, hadoop_author_mapping
+from preprocess import (
+    pig_author_mapping,
+    hive_author_mapping,
+    hadoop_author_mapping,
+    hbase_author_mapping,
+    derby_author_mapping,
+    zookeeper_author_mapping,
+)
 from util import execute_db_query, sort_dict, highest_k, date_to_str
 from collections import defaultdict
 
@@ -9,9 +16,16 @@ combined_author_mapping = {
     **pig_author_mapping,
     **hive_author_mapping,
     **hadoop_author_mapping,
+    **hbase_author_mapping,
+    **derby_author_mapping,
+    **zookeeper_author_mapping,
     # After this point, there are new mappings that we found while
     # we were inspecting comment data, not from Git names.
-    **{"linte": "alexandre linte", "aniket mokashi": "aniket namadeo mokashi"},
+    **{
+        "linte": "alexandre linte",
+        "aniket mokashi": "aniket namadeo mokashi",
+        "@deprecated yi deng": "yi deng",
+    },
 }
 
 
@@ -20,12 +34,14 @@ combined_author_mapping = {
 ignored_commenters = set(
     [
         "asf github bot",
+        "asf subversion and git services",
         "jiraposter@reviews.apache.org",
         "hbase review board",
         "hadoop qa",
         "hudson",
         "hive qa",
         "phabricator",
+        "noreply@reviews.facebook.net",
     ]
 )
 
