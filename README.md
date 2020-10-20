@@ -31,9 +31,11 @@ Previous works are published at **ESEC/FSE '19** [[1]](#1) and **PROMISE '20**[[
 ## Start
 
 Clone the repo.
+
 `git clone https://github.com/hacetin/keydev.git`
 
 Then, change the directory to the project folder.
+
 `cd keydev`
 
 ## Install required packages
@@ -58,25 +60,32 @@ Generate JSON files.
 - zookeeper.sqlite3
 
 2) Run the preprocess script to generate JSON files for all 6 projects (takes a few seconds per project):
+
 `python preprocess.py`
 
 ### Run experiments
 Run 12 experiments (2 different sliding window sizes for each project) in parallel with the default configurations given in `main.py` (same configurations given in the article).
+
 `python main.py`
 
 This step can take hours depending on your system. It will create a pickle file for each experiment under **results** folder to keep the key developer for each day. You can see the logs under **logs** folder.
 
 ### Run validation script
 Run corresponding validation script for each RQ to generate the results shared in the article.
+
 `python rq1_validation.py`
+
 `python rq2_validation.py`
+
 `python rq3_validation.py`
 
 ### Extracting Statistics in the Tables
 Run the following to get scalability statistics of key developer identificaition algortihms when they called all together. This step can take hours depending on your system:
+
 `python scalability`
 
 For number of leaving developers, dataset details after preprocessing and average number of developers, run the following script:
+
 `python statistics`
 
 ## Run tests for `graph.py`, `data_manager.py` and `util.py`
@@ -84,7 +93,12 @@ For number of leaving developers, dataset details after preprocessing and averag
 By using a sample graph (data/test_data), we implemented unit tests for `graph.py` and `data_manager.py`. Also, we implemented tests for the functions in `util.py`.
 
 Each script has own tests inside it. To run these tests, you can call them separately.
-`python graph.py` or `python data_manager.py` or `python util.py`
+
+`python graph.py`
+
+`python data_manager.py`
+
+`python util.py`
 
 You can inspect the sample graph step by step in [data/test_data/sample_graph_steps.pdf](data/test_data/sample_graph_steps.pdf).
 
