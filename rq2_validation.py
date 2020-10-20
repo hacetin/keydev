@@ -1,11 +1,9 @@
 from graph import HistoryGraph
 from data_manager import DataManager
 from datetime import timedelta
-from util import print_log
 import random
 from joblib import Parallel, delayed
 import pickle
-from functools import lru_cache
 
 
 @delayed
@@ -100,7 +98,6 @@ def cal_mrr(ranks):
     return 100 * sum(1 / rank for rank in ranks) / len(ranks)
 
 
-# @lru_cache(maxsize=None)
 def load_results(project_name, sliding_window_size):
     path = "results/{}_dl10_nfl50_sws{}.pkl".format(project_name, sliding_window_size)
     with open(path, "rb") as f:
@@ -128,11 +125,34 @@ if __name__ == "__main__":
 
     # RANDOM SELECTION
     num_sims = 100
+    experiments *= num_sims
     res = Parallel(n_jobs=-1, verbose=10)(
         validation(*params, check_days, max_k, True) for params in experiments
     )
 
-    print("\n\nRANDOM SELECTION - {}\n".format(num_sims))
+    grouped_res = {}
+    # for example -> {"exp_name": {7: 6874, 30: 7852, 90: 8165}}
+
     for res_item in res:
-        for item in res_item:
-            print(item)
+        exp_name = res_item[0]
+        if exp_name not in grouped_res:
+            grouped_res[exp_name] = {}
+        for item in res_item[1:]:
+            check_day = item[0]
+            res_dict = item[1]
+            if check_day not in grouped_res[exp_name]:
+                grouped_res[exp_name][item[0]] = {
+                    "mrr": 0,
+                    "top1": 0,
+                    "top2": 0,
+                    "top3": 0,
+                }
+
+            for k, v in res_dict.items():
+                grouped_res[exp_name][check_day][k] += float(v)
+
+    print("\n\nRANDOM SELECTION - {}\n".format(num_sims))
+    for exp_name, res_item in grouped_res.items():
+        print(exp_name)
+        for check_day, res_dict in res_item.items():
+            print(check_day, {k: v / num_sims for k, v in res_dict.items()})
