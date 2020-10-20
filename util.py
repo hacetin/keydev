@@ -147,6 +147,30 @@ def sort_dict(d, by_value=False, reverse=False):
         return {k: d[k] for k in sorted(d, reverse=reverse)}
 
 
+def print_log(info, log_path, mode="a"):
+    """
+    Print given info along with time string to the file in the `log_path`.
+
+    Parameters
+    ----------
+    info (str):
+        Text to log.
+
+    log_path (str):
+        Path to log file.
+
+    mode (str):
+        'a' (append) or 'write'. 'a' appends to the existing log file.
+        'w' overwrites the existing log file.
+    """
+
+    assert mode in ["a", "w"], "Log mode can be 'a' (append) or 'w' (write)"
+
+    info = "{}: {}".format(datetime.today(), info)
+    with open(log_path, mode, encoding="utf8") as f:
+        f.write(info)
+
+
 class TestUtil(unittest.TestCase):
     def test_sort_dict(self):
         d = {1: 10, 2: 11, 4: 8, 3: 9}
