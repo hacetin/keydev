@@ -2,9 +2,10 @@
 Includes a group of functions used by different scripts.
 """
 
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 import sqlite3
 import unittest
+import pickle
 
 
 default_date_format = "%Y-%m-%dT%H:%M:%SZ"
@@ -169,6 +170,26 @@ def print_log(info, log_path, mode="a"):
     info = "{}: {}".format(datetime.today(), info)
     with open(log_path, mode, encoding="utf8") as f:
         f.write(info)
+
+
+def load_results(project_name, sliding_window_size):
+    """
+    Load the results of the pre-runned experiments from pickle files.
+
+    Parameters
+    ----------
+    project_name (str):
+        Name of the project to read change sets
+    sliding_window_size (str):
+        Number of days to include the graph
+
+    Returns:
+    Any:
+       Whatever the pickle file includes.
+    """
+    path = "results/{}_dl10_nfl50_sws{}.pkl".format(project_name, sliding_window_size)
+    with open(path, "rb") as f:
+        return pickle.load(f)
 
 
 class TestUtil(unittest.TestCase):

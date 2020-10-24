@@ -1,20 +1,23 @@
-from replacement_validation import find_leaving_developers
+from util import load_results
 from data_manager import DataManager
 from graph import HistoryGraph
 
 
 def leaving_developers_table():
+    """
+    Generates the number of leaving developers for each project.
+    """
+
     pnames = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
     print("Absence Limit ", ("{:<15}" * len(pnames)).format(*pnames))
     for absence_limit in [180, 365]:
         print("{:<15}".format(absence_limit), end="")
         for pname in pnames:
-            dataset_path = "data/{}_change_sets.json".format(pname)
-            date_to_leaving_developers = find_leaving_developers(
-                dataset_path, absence_limit
-            )
+            date_to_results = load_results(pname, absence_limit)
             leaving_developers = [
-                dev for devs in date_to_leaving_developers.values() for dev in devs
+                rep
+                for results in date_to_results.values()
+                for rep in results["replacements"]
             ]
             print("{:<15}".format(len(leaving_developers)), end="")
         print()
@@ -22,6 +25,10 @@ def leaving_developers_table():
 
 
 def dataset_details_after_preprocess():
+    """
+    Generates the statistics after preprocessing for each project.
+    """
+
     print("Project        # CS      # CS > 10        # CS > 50")
     for pname in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
         dataset_path = "data/{}_change_sets.json".format(pname)
@@ -58,6 +65,10 @@ def dataset_details_after_preprocess():
 
 
 def average_num_developers():
+    """
+    Generates the average number of developers in the graph for each project.
+    """
+
     pnames = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
     avg_dev_nums = []
     all_dev_nums = []

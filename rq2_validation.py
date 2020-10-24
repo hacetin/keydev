@@ -3,11 +3,36 @@ from data_manager import DataManager
 from datetime import timedelta
 import random
 from joblib import Parallel, delayed
-import pickle
+from util import load_results
 
 
 @delayed
 def validation(project_name, sliding_window_size, check_days, max_k, random_val):
+    """
+    Perform validation with given parameters.
+
+    Parameters
+    ----------
+    project_name (str):
+        Name of the project to read change sets
+    sliding_window_size (str):
+        Number of days to include the graph
+    check_days (list)
+        List of integers to check if recomendations are true or false
+    max_k (int):
+        Maximum k for topk and mrr calculation. When max_k is 3, top1, top2 and top3
+        will be calculated, and the ranks in MRR calculations can 1, 2 and 3.
+    random_val (bool):
+        If True, `max_k` replacements will be selected randomly.
+
+    Returns
+    -------
+    list:
+        First item of the list is the name of the experiment. Second and the following
+        items will include accuracy and MRR for each check day. For example, returns
+        [pig_sws365, (7, {top1:.5, top2:.7, mrr:.6}), (30, {top1:.6, top2:.9, mrr:.7})].
+    """
+
     dataset_path = "data/{}_change_sets.json".format(project_name)
 
     dm = DataManager(dataset_path, None)
@@ -91,17 +116,44 @@ def check_modification(change_sets, recommended_dev, target_files):
 
 
 def cal_accuracy(ranks, k):
+    """
+    Calculate topk accuracy. The numbers in `ranks` which are less than or equal to `k`
+    will be considered as hit, in other words True.
+
+    Parameters
+    ----------
+    ranks (list):
+        List of integers showing the found ranks.
+
+    k (int):
+        Limit to consider the rank True or not.
+
+    Returns
+    -------
+    float:
+        A number between 0 and 100 (inclusive).
+
+    """
+
     return 100 * sum(1 for rank in ranks if rank <= k) / len(ranks)
 
 
 def cal_mrr(ranks):
+    """
+    Calculate mean reciprocal rank (MRR). Mean of the inverse of the integers given in `ranks`
+
+    Parameters
+    ----------
+    ranks (list):
+        List of integers showing the found ranks.
+
+    Returns
+    -------
+    float:
+        A number between 0 and 100 (inclusive).
+    """
+
     return 100 * sum(1 / rank for rank in ranks) / len(ranks)
-
-
-def load_results(project_name, sliding_window_size):
-    path = "results/{}_dl10_nfl50_sws{}.pkl".format(project_name, sliding_window_size)
-    with open(path, "rb") as f:
-        return pickle.load(f)
 
 
 if __name__ == "__main__":
