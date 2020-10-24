@@ -1,27 +1,36 @@
+from statistics import leaving_developers_table
 from time import perf_counter
 from graph import HistoryGraph
-from joblib import Parallel, delayed, cpu_count
+from joblib import Parallel, delayed
+from main import find_leaving_developers
 
 
-def run_experiment(experiment_name, dataset_path):
+@delayed
+def rq1_experiment(project_name):
     """
-    Run experiment with default parameters and export results into a pickle file.
-    First, create a graph for the inital window, then slide that window day by day.
-    Find developers, mavens, connectors and jacks for each iteration.
+    Run experiment with default parameters. First, create a graph for the inital
+    window, then slide the window day by day. Find developers, mavens, connectors
+    and jacks for each iteration.
 
     Parameters
     ----------
-    experiment_name (str):
-        Name of the experiment.
+    project_name (str):
+        Name of the project.
 
-    dataset_path (str):
-        Dataset path to read data.
+    Returns
+    -------
+    tuple:
+        Tuple of experiment name, node statistics, average number of nodes, edge
+        statistics, average number of edges, average time taken and total number
+        of iterations.
     """
+
+    experiment_name = "{}_dl10_nfl50_sws365".format(project_name)
+    dataset_path = "data/{}_change_sets.json".format(project_name)
 
     G = HistoryGraph(dataset_path)
 
     # Start iterations
-    result = {}
     i = 0
     total_num_nodes = 0
     total_num_edges = 0
@@ -39,12 +48,12 @@ def run_experiment(experiment_name, dataset_path):
         total_num_nodes += G.get_num_nodes()
         total_num_edges += G.get_num_edges()
 
-        t0 = perf_counter()
+        t_start = perf_counter()
         G.get_jacks()
         G.get_mavens()
         G.get_connectors()
-        t1 = perf_counter()
-        time_taken += t1 - t0
+        t_end = perf_counter()
+        time_taken += t_end - t_start
 
         if not G.forward_graph_one_day():
             break
@@ -70,33 +79,117 @@ def run_experiment(experiment_name, dataset_path):
     )
 
 
-# Experiment names and dataset paths
-# dl10   -> distance limit is 10
-# nfl50  -> number of files limit is 50
-# sws365 -> sliding window size is 365
-experiments = [
-    ("hadoop_dl10_nfl50_sws365", "data/hadoop_change_sets.json"),
-    ("hive_dl10_nfl50_sws365", "data/hive_change_sets.json"),
-    ("pig_dl10_nfl50_sws365", "data/pig_change_sets.json"),
-    ("hbase_dl10_nfl50_sws365", "data/hbase_change_sets.json"),
-    ("derby_dl10_nfl50_sws365", "data/derby_change_sets.json"),
-    ("zookeeper_dl10_nfl50_sws365", "data/zookeeper_change_sets.json"),
-]
+@delayed
+def rq2_experiment(project_name):
+    """
+    Run experiment with default parameters. First, create a graph for the inital
+    window, then slide the window day by day. Find replacements for leaving
+    developers.
 
-# Run all in parallel using all CPUs.
-res = Parallel(n_jobs=-1, verbose=10)(
-    delayed(run_experiment)(experiment_name, dataset_path)
-    for experiment_name, dataset_path in experiments
-)
+    Parameters
+    ----------
+    project_name (str):
+        Name of the project.
 
-print("Experiment Name\t\t\t| Avg. num. nodes\t| Node Stats ")
-for exp_name, node_stat, avg_num_nodes, _, _, _, _ in res:
-    print("{:<32}{:<5}\t\t\t{}".format(exp_name, avg_num_nodes, node_stat))
+    Returns
+    -------
+    tuple:
+        Tuple of experiment name, node statistics, average number of nodes, edge
+        statistics, average number of edges, average time taken and total number
+        of recommended replacements.
+    """
 
-print("\nExperiment Name\t\t\t| Avg. num. edges\t| Edge Stats ")
-for exp_name, _, _, edge_stat, avg_num_edges, _, _ in res:
-    print("{:<32}{:<5}\t\t\t{}".format(exp_name, avg_num_edges, edge_stat))
+    experiment_name = "{}_dl10_nfl50_sws365".format(project_name)
+    dataset_path = "data/{}_change_sets.json".format(project_name)
 
-print("\nExperiment Name\t\t\t| Avg. time taken\t| Num. iterations")
-for exp_name, _, _, _, _, avg_time_taken, num_iters in res:
-    print("{:<32}{:.2f}\t\t\t{}".format(exp_name, avg_time_taken, num_iters))
+    G = HistoryGraph(dataset_path)
+    date_to_leaving_developers = find_leaving_developers(G)
+
+    G = HistoryGraph(dataset_path)
+    # Start iterations
+    num_leaving_developers = 0
+    total_num_nodes = 0
+    total_num_edges = 0
+    node_stat = {"Developer": 0, "Issue": 0, "ChangeSet": 0, "File": 0}
+    edge_stat = {"commit": 0, "include": 0, "link": 0}
+    time_taken = 0
+    for date, leaving_developers in date_to_leaving_developers.items():
+        G.forward_until(date)
+        for leaving_developer in leaving_developers:
+            num_leaving_developers += 1
+
+            for node_type in node_stat:
+                node_stat[node_type] += len(G._filter_nodes_by_kind(node_type))
+
+            for edge_type in edge_stat:
+                edge_stat[edge_type] += len(G._filter_edges_by_kind(edge_type))
+
+            total_num_nodes += G.get_num_nodes()
+            total_num_edges += G.get_num_edges()
+
+            t_start = perf_counter()
+            G.find_replacement(leaving_developer)
+            t_end = perf_counter()
+            time_taken += t_end - t_start
+
+    for node_type in node_stat:
+        node_stat[node_type] = round(node_stat[node_type] / num_leaving_developers)
+
+    for edge_type in edge_stat:
+        edge_stat[edge_type] = round(edge_stat[edge_type] / num_leaving_developers)
+
+    avg_num_nodes = round(total_num_nodes / num_leaving_developers)
+    avg_num_edges = round(total_num_edges / num_leaving_developers)
+    avg_time_taken = time_taken / num_leaving_developers
+
+    return (
+        experiment_name,
+        node_stat,
+        avg_num_nodes,
+        edge_stat,
+        avg_num_edges,
+        avg_time_taken,
+        num_leaving_developers,
+    )
+
+
+if __name__ == "__main__":
+    project_names = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
+
+    print("RQ1 - Identifying Key Developers")
+    print("Running experiments can take hours.")
+
+    res_rq1 = Parallel(n_jobs=-1, verbose=10)(
+        rq1_experiment(project_name) for project_name in project_names
+    )
+
+    print("Experiment Name\t\t\t| Avg. num. nodes\t| Node Stats ")
+    for exp_name, node_stat, avg_num_nodes, _, _, _, _ in res_rq1:
+        print("{:<32}{:<5}\t\t\t{}".format(exp_name, avg_num_nodes, node_stat))
+
+    print("\nExperiment Name\t\t\t| Avg. num. edges\t| Edge Stats ")
+    for exp_name, _, _, edge_stat, avg_num_edges, _, _ in res_rq1:
+        print("{:<32}{:<5}\t\t\t{}".format(exp_name, avg_num_edges, edge_stat))
+
+    print("\nExperiment Name\t\t\t| Avg. time taken\t| Num. iterations")
+    for exp_name, _, _, _, _, avg_time_taken, num_iters in res_rq1:
+        print("{:<32}{:.2f}\t\t\t{}".format(exp_name, avg_time_taken, num_iters))
+
+    print("RQ2 - Replacement Validation")
+    print("Running experiments can take tens of minutes.")
+
+    res_rq2 = Parallel(n_jobs=-1, verbose=10)(
+        rq2_experiment(project_name) for project_name in project_names
+    )
+
+    print("Experiment Name\t\t\t| Avg. num. nodes\t| Node Stats ")
+    for exp_name, node_stat, avg_num_nodes, _, _, _, _ in res_rq2:
+        print("{:<32}{:<5}\t\t\t{}".format(exp_name, avg_num_nodes, node_stat))
+
+    print("\nExperiment Name\t\t\t| Avg. num. edges\t| Edge Stats ")
+    for exp_name, _, _, edge_stat, avg_num_edges, _, _ in res_rq2:
+        print("{:<32}{:<5}\t\t\t{}".format(exp_name, avg_num_edges, edge_stat))
+
+    print("\nExperiment Name\t\t\t| Avg. time taken\t| Num. iterations")
+    for exp_name, _, _, _, _, avg_time_taken, num_iters in res_rq2:
+        print("{:<32}{:.2f}\t\t\t{}".format(exp_name, avg_time_taken, num_iters))
