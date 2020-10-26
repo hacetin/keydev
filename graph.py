@@ -6,7 +6,7 @@ from data_manager import DataManager, SlidingNotPossible
 from scipy.stats import shapiro
 from collections import defaultdict
 from datetime import datetime
-from util import max_of_day
+from util import max_of_day, sort_dict
 
 
 class HistoryGraph:
@@ -395,7 +395,7 @@ class HistoryGraph:
         """
         return {
             k: d[k]
-            for k in sorted(d, key=lambda x: d[x], reverse=True)
+            for k in sort_dict(d, by_value=True, reverse=True)
             if d[k] >= self._score_threshold
         }
 
@@ -941,11 +941,7 @@ class HistoryGraph:
 
         dev_to_intersection_ratio = {
             dev: dev_to_intersection_ratio[dev]
-            for dev in sorted(
-                dev_to_intersection_ratio,
-                key=lambda x: dev_to_intersection_ratio[x],
-                reverse=True,
-            )
+            for dev in sort_dict(dev_to_intersection_ratio, by_value=True, reverse=True)
             if dev_to_intersection_ratio[dev] > 0
         }
 
@@ -956,6 +952,8 @@ class HistoryGraph:
 class TestHistoryGraph(unittest.TestCase):
     @staticmethod
     def compare(d1, d2):
+        from collections import Counter
+
         """
         Compare the given dictinaries
         Ignore the orders for lists.
@@ -982,8 +980,6 @@ class TestHistoryGraph(unittest.TestCase):
             return True
 
         def compare_lists(l1_, l2_):
-            from collections import Counter
-
             return Counter(l1_) == Counter(l2_)
 
         return compare_dicts(d1, d2)
