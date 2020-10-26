@@ -932,6 +932,7 @@ class HistoryGraph:
                 key=lambda x: dev_to_intersection_ratio[x],
                 reverse=True,
             )
+            if dev_to_intersection_ratio[dev] > 0
         }
 
         return dev_to_intersection_ratio
