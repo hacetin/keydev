@@ -3,7 +3,6 @@ import json
 from util import str_to_date, max_of_day, sort_dict
 import unittest
 from collections import defaultdict
-from functools import lru_cache
 
 
 class SlidingNotPossible(Exception):
@@ -123,6 +122,60 @@ class ChangeSet:
         )
 
 
+cache = {}
+
+
+def _generate_date_to_change_sets(dataset_path):
+    """
+    Generate a dictionary for the pairs of date and change sets committed that date.
+
+    Returns
+    -------
+    dict:
+        A sorted (by date) dictionary for date and change sets pairs.
+    """
+    if dataset_path in cache:
+        return cache[dataset_path]
+
+    with open(dataset_path, encoding="utf8") as f:
+        change_set_jsons = json.load(f)["change_sets"]
+
+    date_to_change_sets = defaultdict(list)
+    for change_set_json in change_set_jsons:
+        code_changes = []
+        for code_change in change_set_json["code_changes"]:
+            cc = CodeChange(
+                code_change["file_path"],
+                code_change["change_type"],
+                code_change.get("old_file_path", None),
+            )
+            code_changes.append(cc)
+
+        change_set = ChangeSet(
+            change_set_json["commit_hash"],
+            change_set_json["author"],
+            max_of_day(str_to_date(change_set_json["date"])),
+            change_set_json["issues"],
+            code_changes,
+            change_set_json["num_current_files"],
+        )
+
+        date_to_change_sets[max_of_day(change_set.date)].append(change_set)
+
+    # Fill the blanks with empty lists
+    dates = list(date_to_change_sets)
+    last_date = dates[-1]
+    date = dates[0]
+
+    while date < last_date:
+        date_to_change_sets[date]
+        date += timedelta(days=1)
+
+    change_sets = sort_dict(date_to_change_sets)
+    cache[dataset_path] = change_sets
+    return change_sets
+
+
 class DataManager:
     """
     The class to handle data related issues while using sliding window approach.
@@ -142,58 +195,9 @@ class DataManager:
         """
 
         self._sliding_window_size = sliding_window_size
-        self._date_to_change_sets = DataManager._generate_date_to_change_sets(
-            dataset_path
-        )
+        self._date_to_change_sets = _generate_date_to_change_sets(dataset_path)
         self._first_date = None  # First included date
         self._last_date = None  # Last included date
-
-    @lru_cache(maxsize=None)
-    def _generate_date_to_change_sets(dataset_path):
-        """
-        Generate a dictionary for the pairs of date and change sets committed that date.
-
-        Returns
-        -------
-        dict:
-            A sorted (by date) dictionary for date and change sets pairs.
-        """
-
-        with open(dataset_path, encoding="utf8") as f:
-            change_set_jsons = json.load(f)["change_sets"]
-
-        date_to_change_sets = defaultdict(list)
-        for change_set_json in change_set_jsons:
-            code_changes = []
-            for code_change in change_set_json["code_changes"]:
-                cc = CodeChange(
-                    code_change["file_path"],
-                    code_change["change_type"],
-                    code_change.get("old_file_path", None),
-                )
-                code_changes.append(cc)
-
-            change_set = ChangeSet(
-                change_set_json["commit_hash"],
-                change_set_json["author"],
-                max_of_day(str_to_date(change_set_json["date"])),
-                change_set_json["issues"],
-                code_changes,
-                change_set_json["num_current_files"],
-            )
-
-            date_to_change_sets[max_of_day(change_set.date)].append(change_set)
-
-        # Fill the blanks with empty lists
-        dates = list(date_to_change_sets)
-        last_date = dates[-1]
-        date = dates[0]
-
-        while date < last_date:
-            date_to_change_sets[date]
-            date += timedelta(days=1)
-
-        return sort_dict(date_to_change_sets)
 
     def get_num_possible_iterations(self):
         """
