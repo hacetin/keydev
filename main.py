@@ -6,7 +6,7 @@ from graph import HistoryGraph
 from util import print_log
 import pickle
 from joblib import Parallel, delayed
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 
 def find_leaving_developers(G):
@@ -81,6 +81,7 @@ def run_experiment(
         mode="w",
     )
 
+    start = datetime.now()
     # Start iterations
     date_to_results = {}
     step = 0
@@ -111,7 +112,8 @@ def run_experiment(
         if not G.forward_graph_one_day():
             break
 
-    print_log("Ended.\n", log_path)
+    end = datetime.now()
+    print_log("Ended.(Time taken: {})\n".format(end - start), log_path)
 
     with open("results/{}.pkl".format(experiment_name), "wb") as f:
         pickle.dump(date_to_results, f)
@@ -129,7 +131,7 @@ if __name__ == "__main__":
         dataset_path = "data/{}_change_sets.json".format(pname)
         for dl in [10]:
             for nfl in [50]:
-                for sws in [180, 365]:  # 180, 365
+                for sws in [180, 365]:
                     exp_name = "{}_dl{}_nfl{}_sws{}".format(pname, dl, nfl, sws)
                     experiments.append((exp_name, dataset_path, dl, nfl, sws))
 
