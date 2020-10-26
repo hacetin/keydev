@@ -72,34 +72,43 @@ class HistoryGraph:
         self._G = nx.Graph()
         self._initialize_graph()
 
-    def _filter_nodes_by_kind(self, kind, G=None):
+    def _filter_nodes_by_kind(self, kind):
         """
         Find the nodes whose kind is `kind`.
 
         Parameters
         ----------
-        kind(str):
+        kind (str):
             Desired node kind.
-
-        G (networkx.Graph):
-            Graph to find the kinds of its nodes. If no graph is given, the default
-            is the whole artifact graph.
 
         Returns
         -------
         list:
             Nodes (strings) whose kind is the given `kind`.
         """
-        if G == None:
-            G = self._G
 
-        return [node for node, k in G.nodes(data="kind") if k == kind]
+        return [node for node, k in self._G.nodes(data="kind") if k == kind]
 
-    def _filter_edges_by_kind(self, kind, G=None):
-        if G == None:
-            G = self._G
+    def _filter_edges_by_kind(self, kind):
+        """
+        Find the edges whose kind is `kind`.
 
-        return [(node1, node2) for node1, node2, k in G.edges(data="kind") if k == kind]
+        Parameters
+        ----------
+        kind (str):
+            Desired edge kind.
+
+        Returns
+        -------
+        list:
+            Edges whose kind is the given `kind`.
+        """
+
+        return [
+            (node1, node2)
+            for node1, node2, k in self._G.edges(data="kind")
+            if k == kind
+        ]
 
     def _initialize_graph(self):
         """
@@ -120,9 +129,6 @@ class HistoryGraph:
         change_sets (list):
             List of change sets (ChangeSet) to add to the graph.
         """
-
-        if change_sets == []:
-            return
 
         for cs in change_sets:
             files_add_modify = []
@@ -202,7 +208,7 @@ class HistoryGraph:
             return
 
         self._G.remove_nodes_from(nodes)
-        unconnected_nodes = [*nx.isolates(self._G)]
+        unconnected_nodes = list(nx.isolates(self._G))
         self._G.remove_nodes_from(unconnected_nodes)
 
     def _rename_nodes(self, mapping):
@@ -477,8 +483,7 @@ class HistoryGraph:
 
         dev_to_files = self.get_dev_to_reachable_files()
         file_to_devs = defaultdict(list)
-        for dev in dev_to_files:
-            reachable_files = dev_to_files[dev]
+        for dev, reachable_files in dev_to_files.items():
             for f in reachable_files:
                 file_to_devs[f].append(dev)
 
@@ -547,10 +552,10 @@ class HistoryGraph:
             Graph with nodes for developers and edges for RSRD values between them.
         """
 
-        dev_pair2distances = self._calculate_rsrd_distances()
+        dev_pair2rsrd = self._calculate_rsrd_distances()
         edge_list = [
-            (dev1, dev2, {"distance": float(distance)})
-            for (dev1, dev2), distance in dev_pair2distances.items()
+            (dev1, dev2, {"distance": distance})
+            for (dev1, dev2), distance in dev_pair2rsrd.items()
             if float(distance) > 0
         ]
         devG = nx.Graph()
@@ -602,7 +607,7 @@ class HistoryGraph:
 
         return self._filter_nodes_by_kind("File")
 
-    def get_num_files(self):
+    def get_num_files_in_project(self):
         """
         Get the number of files in the project, not just in the graph.
 
@@ -714,10 +719,10 @@ class HistoryGraph:
         """
 
         dev_to_files = self.get_dev_to_reachable_files()
-        len_files = self.get_num_files()
+        num_all_files = self.get_num_files_in_project()
         dev_to_file_coverage = {}
         for dev, reachable_files in dev_to_files.items():
-            dev_to_file_coverage[dev] = len(reachable_files) / len_files
+            dev_to_file_coverage[dev] = len(reachable_files) / num_all_files
 
         return self._sort_and_filter(dev_to_file_coverage)
 
@@ -912,22 +917,24 @@ class HistoryGraph:
         if len(other_devs) < 5:
             return None
 
-        dev_to_coverage = {}
+        dev_to_intersection_ratio = {}
         for dev in other_devs:
             dev_files = dev_to_files[dev]
             coverage = len(developer_files.intersection(dev_files)) / len(
                 developer_files
             )
-            dev_to_coverage[dev] = coverage
+            dev_to_intersection_ratio[dev] = coverage  # rename
 
-        dev_to_coverage = {
-            dev: dev_to_coverage[dev]
+        dev_to_intersection_ratio = {
+            dev: dev_to_intersection_ratio[dev]
             for dev in sorted(
-                dev_to_coverage, key=lambda x: dev_to_coverage[x], reverse=True
+                dev_to_intersection_ratio,
+                key=lambda x: dev_to_intersection_ratio[x],
+                reverse=True,
             )
         }
 
-        return dev_to_coverage
+        return dev_to_intersection_ratio
 
 
 class TestHistoryGraph(unittest.TestCase):

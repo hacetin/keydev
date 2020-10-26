@@ -1,4 +1,4 @@
-import pickle
+from util import load_results
 from extract_committers import generate_date_to_top_committers
 from math import ceil
 
@@ -76,8 +76,7 @@ def accuracy(dict1, dict2):
 if __name__ == "__main__":
     for project_name in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
         print(project_name)
-        with open("results/{}_dl10_nfl50_sws365.pkl".format(project_name), "rb") as f:
-            our_results = pickle.load(f)
+        our_results = load_results(project_name)
 
         date_to_label_shapiro = {
             date: our_results[date]["balanced_or_hero"]

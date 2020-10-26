@@ -1,5 +1,6 @@
-import pickle
+from joblib import Parallel, delayed
 import random
+from util import load_results
 from extract_commenters import generate_date_to_top_commenters
 from collections import defaultdict
 
@@ -23,6 +24,8 @@ def accuracy(set1, set2):
     float:
         Intersection ratio of set1 and set2 over set1.
     """
+    if len(set1) == 0:
+        return 0
 
     return len(set1.intersection(set2)) / len(set1)
 
@@ -52,7 +55,7 @@ def print_table(table):
         print(row_text)
 
 
-def topk_table(date_to_predicted_key_developers, date_to_correct_key_developers):
+def topk_table(date_to_key_developers, date_to_top_commenters):
     """
     Calculate accuracies which are required for topk table.
 
@@ -73,8 +76,8 @@ def topk_table(date_to_predicted_key_developers, date_to_correct_key_developers)
 
     kvalues = [1, 3, 5, 10]
     accs = {(k1, k2): [] for k1 in kvalues for k2 in kvalues if k1 <= k2}
-    for date, key_developers in date_to_predicted_key_developers.items():
-        top_commenters = list(date_to_correct_key_developers[date])
+    for date, key_developers in date_to_key_developers.items():
+        top_commenters = list(date_to_top_commenters[date])
 
         for k1, k2 in accs:
             acc = accuracy(set(top_commenters[:k1]), set(key_developers[:k2]))
@@ -140,16 +143,11 @@ def validation(date_to_key_developers, date_to_top_commenters, date_to_developer
     date_to_developers (dict):
         Mapping from dates to all developers in the sliding window ending that date.
     """
-    kvalues = [1, 3, 5, 10]
 
     ## OUR APPROACH
-    print("Our Approach - Top Commenters")
-    acc_table = topk_table(date_to_key_developers, date_to_top_commenters)
-
-    print_table(acc_table)
+    our_acc_table = topk_table(date_to_key_developers, date_to_top_commenters)
 
     ## MONTE CARLO SIMULATION
-    print("Monte Carlo Simulation - Top Commenters")
     num_simulations = 1000
     monte_carlo_acc_tables = []
     for _ in range(num_simulations):
@@ -178,39 +176,59 @@ def validation(date_to_key_developers, date_to_top_commenters, date_to_developer
         k: v / num_simulations for k, v in monte_carlo_sum_acc_table.items()
     }
 
-    print_table(monte_carlo_avg_acc_table)
+    return our_acc_table, monte_carlo_avg_acc_table
+
+
+@delayed
+def validation_wrapper(project_name, sws):
+    exp_name = "{}_sws{}".format(project_name, sws)
+    date_to_results = load_results(project_name, sws=sws)
+
+    # Add intersection to results
+    date_to_intersection = generate_date_to_intersection(date_to_results)
+    for date in date_to_results:
+        date_to_results[date]["intersection"] = date_to_intersection[date]
+
+    date_to_top_commenters = generate_date_to_top_commenters(project_name, sws)
+    date_to_top_commenters = {
+        date: list(top_commenters.keys())
+        for date, top_commenters in date_to_top_commenters.items()
+    }
+
+    date_to_developers = {
+        date: results["developers"] for date, results in date_to_results.items()
+    }
+
+    res_dict = {"jacks": (), "intersection": ()}
+    for category in res_dict:
+        date_to_key_developers = {
+            date: list(results[category].keys())
+            for date, results in date_to_results.items()
+        }
+
+        acc_table, monte_carlo_avg_acc_table = validation(
+            date_to_key_developers, date_to_top_commenters, date_to_developers
+        )
+        res_dict[category] = (acc_table, monte_carlo_avg_acc_table)
+
+    return exp_name, res_dict
 
 
 if __name__ == "__main__":
+    experiments = []
     for project_name in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
-        print("\n\n*****************", project_name.upper(), "*****************")
+        for sliding_window_size in [180, 365]:
+            experiments.append((project_name, sliding_window_size))
 
-        print("Reading experiment results.")
-        with open("results/{}_dl10_nfl50_sws365.pkl".format(project_name), "rb") as f:
-            date_to_results = pickle.load(f)
+    outputs = Parallel(n_jobs=-1, verbose=10)(
+        validation_wrapper(*params) for params in experiments
+    )
 
-        # Add intersection to results
-        date_to_intersection = generate_date_to_intersection(date_to_results)
-        for date in date_to_results:
-            date_to_results[date]["intersection"] = date_to_intersection[date]
-
-        print("Extracting comment counts.")
-        date_to_top_commenters = generate_date_to_top_commenters(project_name)
-        date_to_top_commenters = {
-            date: list(top_commenters.keys())
-            for date, top_commenters in date_to_top_commenters.items()
-        }
-
-        for category in ["jacks", "intersection"]:
-            print("\n", "-->", category.upper())
-            date_to_developers = {
-                date: results["developers"] for date, results in date_to_results.items()
-            }
-            date_to_key_developers = {
-                date: list(results[category].keys())
-                for date, results in date_to_results.items()
-            }
-
-            validation(
-                date_to_key_developers, date_to_top_commenters, date_to_developers
-            )
+    for exp_name, res_dict in outputs:
+        print("\n\n-> {}".format(exp_name))
+        for category, (our_acc_table, monte_carlo_avg_acc_table) in res_dict.items():
+            print("--> {}".format(category))
+            print("Our Approach - Top Commenters")
+            print_table(our_acc_table)
+            print("Monte Carlo Simulation - Top Commenters")
+            print_table(monte_carlo_avg_acc_table)

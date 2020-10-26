@@ -82,13 +82,13 @@ def run_experiment(
     )
 
     # Start iterations
-    result = {}
-    i = 0
+    date_to_results = {}
+    step = 0
     while True:
-        i += 1
+        step += 1
 
         date = G.get_last_included_date()
-        result[date] = {
+        date_to_results[date] = {
             "developers": G.get_developers(),
             "jacks": G.get_jacks(),
             "mavens": G.get_mavens(),
@@ -96,7 +96,7 @@ def run_experiment(
             "last_jack": G.find_last_sig_jack(),
             "last_maven": G.find_last_sig_maven(),
             "last_connector": G.find_last_sig_connector(),
-            "num_files": G.get_num_files(),
+            "num_files": G.get_num_files_in_project(),
             "num_reachable_files": G.get_num_reachable_files(),
             "num_rare_files": G.get_num_rare_files(),
             "balanced_or_hero": G.balanced_or_hero(),
@@ -106,7 +106,7 @@ def run_experiment(
             },
         }
 
-        print_log("{} -> {} nodes\n".format(i, G.get_num_nodes()), log_path)
+        print_log("{} -> {} nodes\n".format(step, G.get_num_nodes()), log_path)
 
         if not G.forward_graph_one_day():
             break
@@ -114,7 +114,7 @@ def run_experiment(
     print_log("Ended.\n", log_path)
 
     with open("results/{}.pkl".format(experiment_name), "wb") as f:
-        pickle.dump(result, f)
+        pickle.dump(date_to_results, f)
 
     print_log("Exported results to 'results/{}.pkl'".format(experiment_name), log_path)
 

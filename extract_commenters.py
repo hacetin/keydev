@@ -86,7 +86,7 @@ def generate_issue_to_commenters(project_name):
     return issue_to_commenters
 
 
-def generate_date_to_top_commenters(project_name):
+def generate_date_to_top_commenters(project_name, sliding_window_size):
     """
     Generate a mapping from date to number of comment made until that date.
 
@@ -97,6 +97,8 @@ def generate_date_to_top_commenters(project_name):
     ----------
     project_name (str):
         Name of the project
+    sws (int):
+        Sliding_window_size, in other words number of days to include the graph.
 
     Returns
     --------
@@ -107,7 +109,9 @@ def generate_date_to_top_commenters(project_name):
 
     issue_to_commenters = generate_issue_to_commenters(project_name)
 
-    data_manager = DataManager("data/{}_change_sets.json".format(project_name), 365)
+    data_manager = DataManager(
+        "data/{}_change_sets.json".format(project_name), sliding_window_size
+    )
 
     # Get initial change sets to add and remove
     change_sets_add = data_manager.get_initial_window()
@@ -145,15 +149,16 @@ def generate_date_to_top_commenters(project_name):
 
 if __name__ == "__main__":
     # Lets extract top10 commenters into csv files to check with eyes
-    for project_name in ["pig", "hive", "hadoop"]:
-        date_to_top_commenters = generate_date_to_top_commenters(project_name)
+    for project_name in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
+        for sws in [180, 365]:
+            date_to_top_commenters = generate_date_to_top_commenters(project_name, sws)
 
-        text = ""
-        for date, counter in date_to_top_commenters.items():
-            top10_commenters = highest_k(counter, 10)
-            text += date_to_str(date) + "," + ",".join(top10_commenters) + "\n"
+            text = ""
+            for date, counter in date_to_top_commenters.items():
+                top10_commenters = highest_k(counter, 10)
+                text += date_to_str(date) + "," + ",".join(top10_commenters) + "\n"
 
-        with open(
-            "data/{}_top_commenters.csv".format(project_name), "w", encoding="utf8"
-        ) as f:
-            f.write(text)
+            with open(
+                "data/{}_top_commenters.csv".format(project_name), "w", encoding="utf8"
+            ) as f:
+                f.write(text)

@@ -13,7 +13,7 @@ def leaving_developers_table():
     for absence_limit in [180, 365]:
         print("{:<15}".format(absence_limit), end="")
         for pname in pnames:
-            date_to_results = load_results(pname, absence_limit)
+            date_to_results = load_results(pname, sws=absence_limit)
             leaving_developers = [
                 rep
                 for results in date_to_results.values()

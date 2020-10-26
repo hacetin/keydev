@@ -5,6 +5,8 @@ import random
 from joblib import Parallel, delayed
 from util import load_results
 
+random.seed(2020)
+
 
 @delayed
 def validation(project_name, sliding_window_size, check_days, max_k, random_val):
@@ -38,8 +40,8 @@ def validation(project_name, sliding_window_size, check_days, max_k, random_val)
     dm = DataManager(dataset_path, None)
     G = HistoryGraph(dataset_path, sliding_window_size)
 
-    ranks = {key: [] for key in check_days}
-    our_results = load_results(project_name, sliding_window_size)
+    ranks = {check_day: [] for check_day in check_days}
+    our_results = load_results(project_name, sws=sliding_window_size)
     for date, results in our_results.items():
         if not results["replacements"]:
             continue
@@ -53,12 +55,12 @@ def validation(project_name, sliding_window_size, check_days, max_k, random_val)
 
             if random_val:
                 # Randomly select "max_k" developers
-                other_devs = G.get_developers()
+                other_devs = results["developers"]
                 other_devs.remove(leaving_dev)
                 recommended_devs = random.sample(other_devs, max_k)
             else:
                 # Convert dictionary keys to list and get first "max_k" items
-                recommended_devs = [*recommended_devs][:max_k]
+                recommended_devs = list(recommended_devs)[:max_k]
 
             leaving_dev_files = set(G.find_reachable_files(leaving_dev))
 
@@ -84,9 +86,9 @@ def validation(project_name, sliding_window_size, check_days, max_k, random_val)
     for check_day in check_days:
         res = {}
         for k in range(1, max_k + 1):
-            res["top{}".format(k)] = "{:.2f}".format(cal_accuracy(ranks[check_day], k))
+            res["top{}".format(k)] = cal_accuracy(ranks[check_day], k)
 
-        res["mrr"] = "{:.2f}".format(cal_mrr(ranks[check_day]))
+        res["mrr"] = cal_mrr(ranks[check_day])
 
         ret_items.append((check_day, res))
     return ret_items
@@ -166,45 +168,48 @@ if __name__ == "__main__":
     check_days = (7, 30, 90)
 
     # OUR APPROACH
-    res = Parallel(n_jobs=-1, verbose=10)(
+    outputs = Parallel(n_jobs=-1, verbose=10)(
         validation(*params, check_days, max_k, False) for params in experiments
     )
 
     print("\nOUR APPROACH\n")
-    for res_item in res:
-        for item in res_item:
-            print(item)
+    for output in outputs:
+        print(output[0])
+        for res_tuple in output[1:]:
+            check_day = res_tuple[0]
+            formatted_res = {
+                metric: "{:.2f}".format(value) for metric, value in res_tuple[1].items()
+            }
+            print(check_day, formatted_res)
 
     # RANDOM SELECTION
     num_sims = 100
     experiments *= num_sims
-    res = Parallel(n_jobs=-1, verbose=10)(
+    outputs = Parallel(n_jobs=-1, verbose=10)(
         validation(*params, check_days, max_k, True) for params in experiments
     )
 
+    # Find the average of all simulations (Sum all and find average while printing)
     grouped_res = {}
-    # for example -> {"exp_name": {7: 6874, 30: 7852, 90: 8165}}
 
-    for res_item in res:
-        exp_name = res_item[0]
+    for output in outputs:
+        exp_name = output[0]
         if exp_name not in grouped_res:
             grouped_res[exp_name] = {}
-        for item in res_item[1:]:
-            check_day = item[0]
-            res_dict = item[1]
+        for res_tuple in output[1:]:
+            check_day = res_tuple[0]
+            res_dict = res_tuple[1]
             if check_day not in grouped_res[exp_name]:
-                grouped_res[exp_name][item[0]] = {
-                    "mrr": 0,
-                    "top1": 0,
-                    "top2": 0,
-                    "top3": 0,
-                }
+                grouped_res[exp_name][res_tuple[0]] = {metric: 0 for metric in res_dict}
 
-            for k, v in res_dict.items():
-                grouped_res[exp_name][check_day][k] += float(v)
+            for metric, value in res_dict.items():
+                grouped_res[exp_name][check_day][metric] += value
 
-    print("\n\nRANDOM SELECTION - {}\n".format(num_sims))
-    for exp_name, res_item in grouped_res.items():
+    print("\n\nRANDOM SELECTION - {} simulations\n".format(num_sims))
+    for exp_name, output in grouped_res.items():
         print(exp_name)
-        for check_day, res_dict in res_item.items():
-            print(check_day, {k: v / num_sims for k, v in res_dict.items()})
+        for check_day, res_dict in output.items():
+            print(
+                check_day,
+                {k: "{:.2f}".format(v / num_sims) for k, v in res_dict.items()},
+            )

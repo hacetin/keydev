@@ -172,22 +172,27 @@ def print_log(info, log_path, mode="a"):
         f.write(info)
 
 
-def load_results(project_name, sliding_window_size):
+def load_results(project_name, dl=10, nfl=50, sws=365):
     """
     Load the results of the pre-runned experiments from pickle files.
+    Parameters are to create experiment name.
 
     Parameters
     ----------
     project_name (str):
         Name of the project to read change sets
-    sliding_window_size (str):
-        Number of days to include the graph
+    dl (int):
+        Distance limit. Limit for DFS of reachable files.
+    nfl (int):
+        Number of files limit. Limit for handling large files.
+    sws (int):
+        Sliding_window_size, in other words number of days to include the graph.
 
     Returns:
-    Any:
-       Whatever the pickle file includes.
+    dict:
+       Results for each day read from pickle file.
     """
-    path = "results/{}_dl10_nfl50_sws{}.pkl".format(project_name, sliding_window_size)
+    path = "results/{}_dl{}_nfl{}_sws{}.pkl".format(project_name, dl, nfl, sws)
     with open(path, "rb") as f:
         return pickle.load(f)
 
