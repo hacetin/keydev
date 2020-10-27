@@ -3,43 +3,10 @@ Get results in parallel and dump into pickle files.
 """
 
 from graph import HistoryGraph
-from util import print_log
+from util import print_log, find_leaving_developers
 import pickle
 from joblib import Parallel, delayed
-from datetime import timedelta, datetime
-
-
-def find_leaving_developers(G):
-    """
-    Find the leaving developers in the given dataset. If any existing developer
-    disappear from the graph when sliding the window, we consider s/he leaved the
-    project at his/her last contribution date.
-
-    Parameters
-    ----------
-    G (graph.HistoryGraph): Graph to find leaving developers.
-
-    Returns
-    -------
-    dict:
-        Mapping from dates to leaving developers that day (last contribution day).
-    """
-    absence_limit = G._graph_range_in_days
-    date_to_leaving_developers = {}
-    prev_developers = set()
-    while True:
-        developers = set(G.get_developers())
-        leaving_developers = prev_developers.difference(developers)
-        prev_developers = developers
-        if leaving_developers:
-            date = G.get_last_included_date()
-            leaving_day = date - timedelta(days=absence_limit)
-            date_to_leaving_developers[leaving_day] = leaving_developers
-
-        if not G.forward_graph_one_day():
-            break
-
-    return date_to_leaving_developers
+from datetime import datetime
 
 
 def run_experiment(
@@ -58,6 +25,7 @@ def run_experiment(
     dataset_path (str):
         Dataset path to read data.
     """
+
     G = HistoryGraph(
         dataset_path=dataset_path,
         graph_range_in_days=sliding_window_size,
@@ -66,13 +34,6 @@ def run_experiment(
     )
 
     date_to_leaving_developers = find_leaving_developers(G)
-
-    G = HistoryGraph(
-        dataset_path=dataset_path,
-        graph_range_in_days=sliding_window_size,
-        distance_limit=distance_limit,
-        num_files_limit=num_files_limit,
-    )
 
     log_path = "logs/{}.log".format(experiment_name)
     print_log(

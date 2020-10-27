@@ -2,16 +2,17 @@
 Includes a group of functions used by different scripts.
 """
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
+from copy import deepcopy
 import sqlite3
 import unittest
 import pickle
 
 
-default_date_format = "%Y-%m-%dT%H:%M:%SZ"
+_default_date_format = "%Y-%m-%dT%H:%M:%SZ"
 
 
-def str_to_date(date_str, date_format=default_date_format):
+def str_to_date(date_str, date_format=_default_date_format):
     """
     The function to convert time string to datetime object.
 
@@ -31,7 +32,7 @@ def str_to_date(date_str, date_format=default_date_format):
     return datetime.strptime(date_str, date_format)
 
 
-def date_to_str(date, date_format=default_date_format):
+def date_to_str(date, date_format=_default_date_format):
     """
     The function to convert the given datetime object to string.
 
@@ -195,6 +196,40 @@ def load_results(project_name, dl=10, nfl=50, sws=365):
     path = "results/{}_dl{}_nfl{}_sws{}.pkl".format(project_name, dl, nfl, sws)
     with open(path, "rb") as f:
         return pickle.load(f)
+
+
+def find_leaving_developers(G):
+    """
+    Find the leaving developers in the given dataset. If any existing developer
+    disappear from the graph when sliding the window, we consider s/he leaved the
+    project at his/her last contribution date.
+
+    Parameters
+    ----------
+    G (graph.HistoryGraph): Graph to find leaving developers. It will not be changed.
+
+    Returns
+    -------
+    dict:
+        Mapping from dates to leaving developers that day (last contribution day).
+    """
+    G_ = deepcopy(G)
+    absence_limit = G_._graph_range_in_days
+    date_to_leaving_developers = {}
+    prev_developers = set()
+    while True:
+        developers = set(G_.get_developers())
+        leaving_developers = prev_developers.difference(developers)
+        prev_developers = developers
+        if leaving_developers:
+            date = G_.get_last_included_date()
+            leaving_day = date - timedelta(days=absence_limit)
+            date_to_leaving_developers[leaving_day] = leaving_developers
+
+        if not G_.forward_graph_one_day():
+            break
+
+    return date_to_leaving_developers
 
 
 class TestUtil(unittest.TestCase):
