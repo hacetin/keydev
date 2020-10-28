@@ -952,14 +952,10 @@ class HistoryGraph:
             )
             dev_to_intersection_ratio[dev] = coverage  # rename
 
-        dev_to_intersection_ratio = {
-            dev: dev_to_intersection_ratio[dev]
-            for dev in sort_dict(dev_to_intersection_ratio, by_value=True, reverse=True)
-            if dev_to_intersection_ratio[dev] > 0
-        }
+        replacements = self._sort_and_filter(dev_to_intersection_ratio)
 
-        self.cache[(developer, "replacement")] = dev_to_intersection_ratio
-        return dev_to_intersection_ratio
+        self.cache[(developer, "replacements")] = replacements
+        return replacements
 
 
 class TestHistoryGraph(unittest.TestCase):
