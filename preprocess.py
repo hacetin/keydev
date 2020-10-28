@@ -1,5 +1,5 @@
 import json
-from util import execute_db_query
+from util import execute_db_query, get_dataset_path
 from collections import defaultdict
 
 
@@ -385,7 +385,6 @@ if __name__ == "__main__":
     ]:
         # First, extract commits and generate a JSON formatted string.
         text = extract_change_sets(dataset_name, author_mapping)
-        with open(
-            "data/{}_change_sets.json".format(dataset_name), "w", encoding="utf8"
-        ) as f:
+        dataset_path = get_dataset_path(dataset_name)
+        with open(dataset_path, "w", encoding="utf8") as f:
             f.write(text)

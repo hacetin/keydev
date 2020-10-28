@@ -7,7 +7,14 @@ from preprocess import (
     derby_author_mapping,
     zookeeper_author_mapping,
 )
-from util import execute_db_query, sort_dict, highest_k, date_to_str
+from util import (
+    execute_db_query,
+    sort_dict,
+    highest_k,
+    date_to_str,
+    get_dataset_path,
+    project_list,
+)
 from collections import defaultdict
 
 # Since all 3 projects belong to Apache community and they all use the same jira system,
@@ -109,9 +116,7 @@ def generate_date_to_top_commenters(project_name, sliding_window_size):
 
     issue_to_commenters = generate_issue_to_commenters(project_name)
 
-    data_manager = DataManager(
-        "data/{}_change_sets.json".format(project_name), sliding_window_size
-    )
+    data_manager = DataManager(get_dataset_path(project_name), sliding_window_size)
 
     # Get initial change sets to add and remove
     change_sets_add = data_manager.get_initial_window()
@@ -149,7 +154,7 @@ def generate_date_to_top_commenters(project_name, sliding_window_size):
 
 if __name__ == "__main__":
     # Lets extract top10 commenters into csv files to check with eyes
-    for project_name in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
+    for project_name in project_list:
         for sws in [180, 365]:
             date_to_top_commenters = generate_date_to_top_commenters(project_name, sws)
 

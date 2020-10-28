@@ -1,6 +1,6 @@
 from joblib import Parallel, delayed
 import random
-from util import load_results
+from util import get_exp_name, load_results, project_list
 from extract_commenters import generate_date_to_top_commenters
 from collections import defaultdict
 
@@ -181,8 +181,8 @@ def validation(date_to_key_developers, date_to_top_commenters, date_to_developer
 
 @delayed
 def validation_wrapper(project_name, sws):
-    exp_name = "{}_sws{}".format(project_name, sws)
-    date_to_results = load_results(project_name, sws=sws)
+    exp_name = get_exp_name(project_name, sws=sws)
+    date_to_results = load_results(exp_name)
 
     # Add intersection to results
     date_to_intersection = generate_date_to_intersection(date_to_results)
@@ -216,7 +216,7 @@ def validation_wrapper(project_name, sws):
 
 if __name__ == "__main__":
     experiments = []
-    for project_name in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
+    for project_name in project_list:
         for sliding_window_size in [180, 365]:
             experiments.append((project_name, sliding_window_size))
 

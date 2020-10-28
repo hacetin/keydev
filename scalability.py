@@ -4,7 +4,7 @@ Runs algorithms and prints time statistics for scalability discussions.
 from time import perf_counter
 from graph import HistoryGraph
 from joblib import Parallel, delayed
-from util import find_leaving_developers
+from util import find_leaving_developers, get_dataset_path, get_exp_name, project_list
 
 
 @delayed
@@ -30,8 +30,8 @@ def scalability_experiment_rq1_rq3(project_name, method_name):
         of iterations.
     """
 
-    experiment_name = "{}_dl10_nfl50_sws365".format(project_name)
-    dataset_path = "data/{}_change_sets.json".format(project_name)
+    experiment_name = get_exp_name(project_name)
+    dataset_path = get_dataset_path(project_name)
 
     G = HistoryGraph(dataset_path)
 
@@ -54,7 +54,7 @@ def scalability_experiment_rq1_rq3(project_name, method_name):
         total_num_edges += G.get_num_edges()
 
         t_start = perf_counter()
-        r = eval("G.{}()".format(method_name))
+        eval("G.{}()".format(method_name))
         t_end = perf_counter()
         time_taken += t_end - t_start
 
@@ -102,8 +102,8 @@ def scalability_experiment_rq2(project_name):
         of recommended replacements.
     """
 
-    experiment_name = "{}_dl10_nfl50_sws365".format(project_name)
-    dataset_path = "data/{}_change_sets.json".format(project_name)
+    experiment_name = get_exp_name.format(project_name)
+    dataset_path = get_dataset_path(project_name)
 
     G = HistoryGraph(dataset_path)
     date_to_leaving_developers = find_leaving_developers(G)
@@ -156,11 +156,10 @@ def scalability_experiment_rq2(project_name):
 
 
 def run_experiment_rq1_rq3(method_name):
-    project_names = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
     print("Running experiments for {}. It might take a while.".format(method_name))
 
     results = Parallel(n_jobs=-1, verbose=10)(
-        scalability_experiment_rq1_rq3(pname, method_name) for pname in project_names
+        scalability_experiment_rq1_rq3(pname, method_name) for pname in project_list
     )
 
     print("\n\nMethod: {}\n".format(method_name))
@@ -168,11 +167,10 @@ def run_experiment_rq1_rq3(method_name):
 
 
 def run_experiment_rq2():
-    project_names = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
     print("Running experiments for find_replacements. It might take a while.")
 
     results = Parallel(n_jobs=-1, verbose=10)(
-        scalability_experiment_rq2(pname) for pname in project_names
+        scalability_experiment_rq2(pname) for pname in project_list
     )
 
     print("\n\nMethod: find_replacements\n")

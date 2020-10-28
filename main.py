@@ -3,15 +3,21 @@ Get results in parallel and dump into pickle files.
 """
 
 from graph import HistoryGraph
-from util import print_log, find_leaving_developers
-import pickle
+from util import (
+    dump_results,
+    get_exp_name,
+    print_log,
+    find_leaving_developers,
+    get_dataset_path,
+    project_list,
+    sws_list,
+)
 from joblib import Parallel, delayed
 from datetime import datetime
 
 
-def run_experiment(
-    experiment_name, dataset_path, distance_limit, num_files_limit, sliding_window_size
-):
+@delayed
+def run_experiment(experiment_name, dataset_path, sliding_window_size):
     """
     Run experiment with default parameters and export results into a pickle file.
     First, create a graph for the inital window, then slide that window day by day.
@@ -26,12 +32,7 @@ def run_experiment(
         Dataset path to read data.
     """
 
-    G = HistoryGraph(
-        dataset_path=dataset_path,
-        graph_range_in_days=sliding_window_size,
-        distance_limit=distance_limit,
-        num_files_limit=num_files_limit,
-    )
+    G = HistoryGraph(dataset_path, sliding_window_size)
 
     date_to_leaving_developers = find_leaving_developers(G)
 
@@ -76,27 +77,20 @@ def run_experiment(
     end = datetime.now()
     print_log("Ended.(Time taken: {})\n".format(end - start), log_path)
 
-    with open("results/{}.pkl".format(experiment_name), "wb") as f:
-        pickle.dump(date_to_results, f)
-
+    dump_results(experiment_name, date_to_results)
     print_log("Exported results to 'results/{}.pkl'".format(experiment_name), log_path)
 
 
 if __name__ == "__main__":
-    # Experiment names and dataset paths
-    # dl  -> distance limit
-    # nfl -> number of files limit
+    # dl  -> distance limit (using default (10) in graph.HıstoryGraph)
+    # nfl -> number of files limit (using default (50) in graph.HıstoryGraph)
     # sws -> sliding window size is
     experiments = []
-    for pname in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
-        dataset_path = "data/{}_change_sets.json".format(pname)
-        for dl in [10]:
-            for nfl in [50]:
-                for sws in [180, 365]:
-                    exp_name = "{}_dl{}_nfl{}_sws{}".format(pname, dl, nfl, sws)
-                    experiments.append((exp_name, dataset_path, dl, nfl, sws))
+    for project_name in project_list:
+        dataset_path = get_dataset_path(project_name)
+        for sws in sws_list:
+            exp_name = get_exp_name(project_name, sws=sws)
+            experiments.append((exp_name, dataset_path, sws))
 
     # Run all in parallel using all CPUs.
-    Parallel(n_jobs=-1, verbose=10)(
-        delayed(run_experiment)(*params) for params in experiments
-    )
+    Parallel(n_jobs=-1, verbose=10)(run_experiment(*params) for params in experiments)

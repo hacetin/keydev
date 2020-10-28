@@ -19,8 +19,8 @@ class HistoryGraph:
     dataset_path (str):
         Path to the dataset which will be used to construct the graph.
 
-    graph_range_in_days (int):
-        Number of days included to the artifact graph (i.e. sliding window size).
+    sliding_window_size (int):
+        Number of days included to the artifact graph.
 
     distance_limit (float):
         Limit used in file reachability DFS.
@@ -49,7 +49,7 @@ class HistoryGraph:
     def __init__(
         self,
         dataset_path,
-        graph_range_in_days=365,  # Graph range or sliding window size
+        sliding_window_size=365,  # Graph range (days) or sliding window size
         distance_limit=10.0,  # Depth limit for DFS
         num_files_limit=50,  # Limit for handling large change sets
         score_threshold=0.000005,  # Lower scores will be ignored
@@ -57,7 +57,7 @@ class HistoryGraph:
         """
         Initialize the HistoryGraph object. Look at the class docstring for details.
         """
-        self._graph_range_in_days = graph_range_in_days
+        self._sliding_window_size = sliding_window_size
         self._dataset_path = dataset_path
         self._distance_limit = distance_limit
         self._num_files_limit = num_files_limit
@@ -68,7 +68,7 @@ class HistoryGraph:
         self.cache = {}
 
         # Create data manager instance to handle the sliding window approach
-        self._data_manager = DataManager(dataset_path, graph_range_in_days)
+        self._data_manager = DataManager(dataset_path, sliding_window_size)
 
         # Create the first state of the artifact graph
         self._G = nx.Graph()
@@ -88,6 +88,15 @@ class HistoryGraph:
         list:
             Nodes (strings) whose kind is the given `kind`.
         """
+        # The following logic is buggy, idk why.
+
+        # if (kind, "filter_nodes") in self.cache:
+        #     return self.cache[(kind, "filter_nodes")]
+
+        # nodes = [node for node, k in self._G.nodes(data="kind") if k == kind]
+        # self.cache[(kind, "filter_nodes")] = nodes
+
+        # return nodes
 
         return [node for node, k in self._G.nodes(data="kind") if k == kind]
 
@@ -269,7 +278,7 @@ class HistoryGraph:
         if edge_date == None:
             return 0
 
-        recency = self._which_day(edge_date) / self._graph_range_in_days
+        recency = self._which_day(edge_date) / self._sliding_window_size
         return 1 / recency
 
     def find_reachable_files(self, developer):
@@ -874,14 +883,18 @@ class HistoryGraph:
             "balanced" or "hero" if number of developers is more than or equal to 3.
             Otherwise, None.
         """
-
+        devs = self.get_developers()
         jacks = self.get_jacks()
-        if len(jacks) < 3:
+
+        # Include developers with 0 file coverage
+        dev_to_knowledge = {dev: jacks.get(dev, 0) for dev in devs}
+
+        if len(dev_to_knowledge) < 3:
             return None
 
-        file_coverages = list(jacks.values())
+        knowledge_list = list(dev_to_knowledge.values())
         alpha = 0.05
-        stat, p = shapiro(file_coverages)
+        stat, p = shapiro(knowledge_list)
 
         if p > alpha:
             return "balanced"  # Gaussian-like
@@ -987,7 +1000,7 @@ class TestHistoryGraph(unittest.TestCase):
     def test_reachable_files(self):
         G = HistoryGraph(
             "data/test_data/sample_graph.json",
-            graph_range_in_days=300,
+            sliding_window_size=300,
             distance_limit=10,
         )
         i = 1
@@ -1007,7 +1020,7 @@ class TestHistoryGraph(unittest.TestCase):
     def test_mavens(self):
         G = HistoryGraph(
             "data/test_data/sample_graph.json",
-            graph_range_in_days=300,
+            sliding_window_size=300,
             distance_limit=10,
         )
         i = 1
@@ -1027,7 +1040,7 @@ class TestHistoryGraph(unittest.TestCase):
     def test_connectors(self):
         G = HistoryGraph(
             "data/test_data/sample_graph.json",
-            graph_range_in_days=300,
+            sliding_window_size=300,
             distance_limit=10,
         )
         i = 1
@@ -1047,7 +1060,7 @@ class TestHistoryGraph(unittest.TestCase):
     def test_jacks(self):
         G = HistoryGraph(
             "data/test_data/sample_graph.json",
-            graph_range_in_days=300,
+            sliding_window_size=300,
             distance_limit=10,
         )
         i = 1
@@ -1067,7 +1080,7 @@ class TestHistoryGraph(unittest.TestCase):
     def test_reachable_files_specific_date(self):
         G = HistoryGraph(
             "data/test_data/sample_graph.json",
-            graph_range_in_days=300,
+            sliding_window_size=300,
             distance_limit=10,
         )
 

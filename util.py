@@ -9,7 +9,47 @@ import unittest
 import pickle
 
 
+# These parameters are used wherever dataset they are needed in the source code.
+# So, any change here, it will affect everywhere (experiments, validation etc.).
+project_list = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
+sws_list = [180, 365]
+
+# This is the default format in sqlite3 databases. Every part of the code uses
+# the same date format
 _default_date_format = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def get_dataset_path(project_name):
+    """
+    Specify the dataset path. This method is used wherever dataset path is needed
+    in the source code. So, if the path is changed here, it will affect everywhere.
+
+    Parameters
+    ----------
+    project_name (str):
+        Name of the project to read change sets.
+    """
+    return "data/{}_change_sets.json".format(project_name)
+
+
+def get_exp_name(project_name, nl=10, nfl=50, sws=365):
+    """
+    Specify the experimment naming. This method is used wherever experimment name
+    is needed in the source code. So, if the experimment naming is changed here,
+    it will affect everywhere.
+
+    Parameters
+    ----------
+    project_name (str):
+        Name of the project to read change sets.
+    dl (int):
+        Distance limit. Limit for DFS of reachable files.
+    nfl (int):
+        Number of files limit. Limit for handling large files.
+    sws (int):
+        Sliding_window_size, in other words number of days to include the graph.
+    """
+    return "{}_dl{}_nfl{}_sws{}".format(project_name, nl, nfl, sws)
 
 
 def str_to_date(date_str, date_format=_default_date_format):
@@ -173,29 +213,41 @@ def print_log(info, log_path, mode="a"):
         f.write(info)
 
 
-def load_results(project_name, dl=10, nfl=50, sws=365):
+def load_results(exp_name):
     """
     Load the results of the pre-runned experiments from pickle files.
     Parameters are to create experiment name.
 
     Parameters
     ----------
-    project_name (str):
-        Name of the project to read change sets
-    dl (int):
-        Distance limit. Limit for DFS of reachable files.
-    nfl (int):
-        Number of files limit. Limit for handling large files.
-    sws (int):
-        Sliding_window_size, in other words number of days to include the graph.
+    exp_name (str):
+        Name of the experiment used while saving results
 
     Returns:
     dict:
        Results for each day read from pickle file.
     """
-    path = "results/{}_dl{}_nfl{}_sws{}.pkl".format(project_name, dl, nfl, sws)
+
+    path = "results/{}.pkl".format(exp_name)
     with open(path, "rb") as f:
         return pickle.load(f)
+
+
+def dump_results(exp_name, date_to_results):
+    """
+    Dump the given results into pickle file.
+
+    Parameters
+    ----------
+    exp_name (str):
+        Name of the experiment used while saving results
+    date_to_results (dict):
+        Mapping from date to results.
+    """
+
+    path = "results/{}.pkl".format(exp_name)
+    with open(path, "wb") as f:
+        pickle.dump(date_to_results, f)
 
 
 def find_leaving_developers(G):
@@ -214,7 +266,7 @@ def find_leaving_developers(G):
         Mapping from dates to leaving developers that day (last contribution day).
     """
     G_ = deepcopy(G)
-    absence_limit = G_._graph_range_in_days
+    absence_limit = G_._sliding_window_size
     date_to_leaving_developers = {}
     prev_developers = set()
     while True:

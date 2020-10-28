@@ -1,4 +1,7 @@
-from util import load_results
+"""
+Generates statistics for the tables in the paper.
+"""
+from util import get_exp_name, load_results, get_dataset_path, project_list
 from data_manager import DataManager
 from graph import HistoryGraph
 
@@ -8,12 +11,13 @@ def leaving_developers_table():
     Generates the number of leaving developers for each project.
     """
 
-    pnames = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
-    print("Absence Limit ", ("{:<15}" * len(pnames)).format(*pnames))
+    print("Absence Limit ", ("{:<15}" * len(project_list)).format(*project_list))
     for absence_limit in [180, 365]:
         print("{:<15}".format(absence_limit), end="")
-        for pname in pnames:
-            date_to_results = load_results(pname, sws=absence_limit)
+        for project_name in project_list:
+            date_to_results = load_results(
+                get_exp_name(project_name, sws=absence_limit)
+            )
             leaving_developers = [
                 rep
                 for results in date_to_results.values()
@@ -30,8 +34,8 @@ def dataset_details_after_preprocess():
     """
 
     print("Project        # CS      # CS > 10        # CS > 50")
-    for pname in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
-        dataset_path = "data/{}_change_sets.json".format(pname)
+    for project_name in project_list:
+        dataset_path = get_dataset_path(project_name)
         dm = DataManager(dataset_path, None)
         nums_cs = 0
         nums_cs_10 = 0
@@ -53,7 +57,7 @@ def dataset_details_after_preprocess():
 
         print(
             "{:<15}{}\t{:>5}({:.2f})\t{:>5}({:.2f})".format(
-                pname,
+                project_name,
                 nums_cs,
                 nums_cs_10,
                 100 * nums_cs_10 / nums_cs,
@@ -69,11 +73,10 @@ def average_num_developers():
     Generates the average number of developers in the graph for each project.
     """
 
-    pnames = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
     avg_dev_nums = []
     all_dev_nums = []
-    for pname in pnames:
-        dataset_path = "data/{}_change_sets.json".format(pname)
+    for project_name in project_list:
+        dataset_path = get_dataset_path(project_name)
         G = HistoryGraph(dataset_path)
         dev_nums = []
         all_devs = set()
@@ -86,7 +89,7 @@ def average_num_developers():
         avg_dev_nums.append(sum(dev_nums) / len(dev_nums))
         all_dev_nums.append(len(all_devs))
 
-    print(("{:<15}" * len(pnames)).format(*pnames))
+    print(("{:<15}" * len(project_list)).format(*project_list))
     print(("{:<15.2f}" * len(avg_dev_nums)).format(*avg_dev_nums), end="")
     print()
     print(("{:<15}" * len(all_dev_nums)).format(*all_dev_nums), end="")

@@ -3,7 +3,7 @@ from data_manager import DataManager
 from datetime import timedelta
 import random
 from joblib import Parallel, delayed
-from util import load_results
+from util import get_exp_name, load_results, get_dataset_path, project_list
 
 random.seed(2020)
 
@@ -19,7 +19,7 @@ def validation(project_name, sliding_window_size, check_days, max_k, random_val)
         Name of the project to read change sets
     sliding_window_size (str):
         Number of days to include the graph
-    check_days (list)
+    check_days (list):
         List of integers to check if recomendations are true or false
     max_k (int):
         Maximum k for topk and mrr calculation. When max_k is 3, top1, top2 and top3
@@ -35,13 +35,14 @@ def validation(project_name, sliding_window_size, check_days, max_k, random_val)
         [pig_sws365, (7, {top1:.5, top2:.7, mrr:.6}), (30, {top1:.6, top2:.9, mrr:.7})].
     """
 
-    dataset_path = "data/{}_change_sets.json".format(project_name)
+    dataset_path = get_dataset_path(project_name)
+    exp_name = get_exp_name(project_name, sws=sliding_window_size)
 
     dm = DataManager(dataset_path, None)
     G = HistoryGraph(dataset_path, sliding_window_size)
 
     ranks = {check_day: [] for check_day in check_days}
-    our_results = load_results(project_name, sws=sliding_window_size)
+    our_results = load_results(exp_name)
     for date, results in our_results.items():
         if not results["replacements"]:
             continue
@@ -80,7 +81,6 @@ def validation(project_name, sliding_window_size, check_days, max_k, random_val)
 
                 ranks[check_day].append(rank)
 
-    exp_name = "{}_sws{}".format(project_name, sliding_window_size)
     ret_items = [exp_name]
 
     for check_day in check_days:
@@ -99,10 +99,19 @@ def check_modification(change_sets, recommended_dev, target_files):
     Check the given change sets. If `recommended_dev` change any of `target_files`,
     return True. Otherwise return False.
 
+    Parameters
+    ----------
+    change_sets (list):
+        Change sets to check modification.
+    recommended_dev (str):
+        Name of the author (developer)
+    target_files (list):
+        Files to check modification.
+
     Returns
     -------
     bool:
-        True if `recommended_dev` change any of `target_files`. Otherwise, False.
+        True if `recommended_dev` changes any of `target_files`. Otherwise, False.
     """
 
     for cs in change_sets:
@@ -160,7 +169,7 @@ def cal_mrr(ranks):
 
 if __name__ == "__main__":
     experiments = []
-    for project_name in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
+    for project_name in project_list:
         for sliding_window_size in [180, 365]:
             experiments.append((project_name, sliding_window_size))
 

@@ -1,4 +1,4 @@
-from util import load_results
+from util import get_exp_name, load_results, project_list
 from extract_committers import generate_date_to_top_committers
 from math import ceil
 
@@ -74,9 +74,9 @@ def accuracy(dict1, dict2):
 
 
 if __name__ == "__main__":
-    for project_name in ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]:
+    for project_name in project_list:
         print(project_name)
-        our_results = load_results(project_name)
+        our_results = load_results(get_exp_name(project_name))
 
         date_to_label_shapiro = {
             date: our_results[date]["balanced_or_hero"]

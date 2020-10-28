@@ -1,5 +1,5 @@
 from data_manager import DataManager, SlidingNotPossible
-from util import sort_dict, highest_k, date_to_str
+from util import sort_dict, highest_k, date_to_str, get_dataset_path
 from collections import defaultdict
 
 
@@ -22,7 +22,7 @@ def generate_date_to_top_committers(project_name):
         window ending that date.
     """
 
-    data_manager = DataManager("data/{}_change_sets.json".format(project_name), 365)
+    data_manager = DataManager(get_dataset_path(project_name), 365)
 
     # Get initial change sets to add and remove
     change_sets_add = data_manager.get_initial_window()
