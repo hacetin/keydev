@@ -1,11 +1,14 @@
+"""
+Generates the number in result tables for RQ2.
+"""
 from graph import HistoryGraph
 from data_manager import DataManager
 from datetime import timedelta
 import random
 from joblib import Parallel, delayed
-from util import get_exp_name, load_results, get_dataset_path, project_list
+from util import get_exp_name, load_results, get_dataset_path, project_list, sws_list
 
-random.seed(2020)
+random.seed(2020)  # To produce same accuaries for random case in different runs.
 
 
 @delayed
@@ -16,14 +19,18 @@ def validation(project_name, sliding_window_size, check_days, max_k, random_val)
     Parameters
     ----------
     project_name (str):
-        Name of the project to read change sets
+        Name of the project to read change sets.
+
     sliding_window_size (str):
-        Number of days to include the graph
+        Number of days to include the graph.
+
     check_days (list):
-        List of integers to check if recomendations are true or false
+        List of integers to check if recomendations are true or false.
+
     max_k (int):
-        Maximum k for topk and mrr calculation. When max_k is 3, top1, top2 and top3
+        Maximum k for topk and MRR calculations. When max_k is 3, top1, top2 and top3
         will be calculated, and the ranks in MRR calculations can 1, 2 and 3.
+
     random_val (bool):
         If True, `max_k` replacements will be selected randomly.
 
@@ -34,61 +41,61 @@ def validation(project_name, sliding_window_size, check_days, max_k, random_val)
         items will include accuracy and MRR for each check day. For example, returns
         [pig_sws365, (7, {top1:.5, top2:.7, mrr:.6}), (30, {top1:.6, top2:.9, mrr:.7})].
     """
-
     dataset_path = get_dataset_path(project_name)
     exp_name = get_exp_name(project_name, sws=sliding_window_size)
 
-    dm = DataManager(dataset_path, None)
+    dm = DataManager(dataset_path, None)  # No need for sliding window size
     G = HistoryGraph(dataset_path, sliding_window_size)
 
-    ranks = {check_day: [] for check_day in check_days}
-    our_results = load_results(exp_name)
-    for date, results in our_results.items():
-        if not results["replacements"]:
+    check_day_to_ranks = {check_day: [] for check_day in check_days}
+    date_to_results = load_results(exp_name)
+    for date, results in date_to_results.items():
+        if not results["replacements"]:  # No leaving developer
             continue
 
-        # update graph
-        G.forward_until(date)
+        G.forward_until(date)  # Update graph
 
         for leaving_dev, recommended_devs in results["replacements"].items():
-            if not recommended_devs:
+            if not recommended_devs:  # No recommended developers
                 continue
 
-            if random_val:
-                # Randomly select "max_k" developers
+            if random_val:  # Randomly select "max_k" developers
                 other_devs = results["developers"]
                 other_devs.remove(leaving_dev)
                 recommended_devs = random.sample(other_devs, max_k)
-            else:
-                # Convert dictionary keys to list and get first "max_k" items
+            else:  # Convert dictionary keys to list and get first "max_k" items
                 recommended_devs = list(recommended_devs)[:max_k]
 
             leaving_dev_files = set(G.find_reachable_files(leaving_dev))
 
             for check_day in check_days:
-                # get the change sets for the check days
+                # Get the change sets in the next days
+                # For example, get the change sets in the next 7 days if check day is 7
                 change_sets = dm.get_specific_window(
                     date + timedelta(days=1), date + timedelta(days=check_day)
                 )
-                rank = float("inf")
+                rank = float("inf")  # Not found yet
                 for i, recommended_dev in enumerate(recommended_devs):
                     recommended_dev_files = set(G.find_reachable_files(recommended_dev))
+
+                    # Find the files that leaving developer can reach but recmommended
+                    # developer cannot reach
                     target_files = leaving_dev_files - recommended_dev_files
 
                     if check_modification(change_sets, recommended_dev, target_files):
                         rank = i + 1
-                        break
+                        break  # No need to check other developers
 
-                ranks[check_day].append(rank)
+                check_day_to_ranks[check_day].append(rank)
 
     ret_items = [exp_name]
 
     for check_day in check_days:
         res = {}
         for k in range(1, max_k + 1):
-            res["top{}".format(k)] = cal_accuracy(ranks[check_day], k)
+            res["top{}".format(k)] = cal_accuracy(check_day_to_ranks[check_day], k)
 
-        res["mrr"] = cal_mrr(ranks[check_day])
+        res["mrr"] = cal_mrr(check_day_to_ranks[check_day])
 
         ret_items.append((check_day, res))
     return ret_items
@@ -103,17 +110,19 @@ def check_modification(change_sets, recommended_dev, target_files):
     ----------
     change_sets (list):
         Change sets to check modification.
+
     recommended_dev (str):
-        Name of the author (developer)
+        Name of the author (developer) to check.
+
     target_files (list):
         Files to check modification.
 
     Returns
     -------
     bool:
-        True if `recommended_dev` changes any of `target_files`. Otherwise, False.
+        True if `recommended_dev` changes any of `target_files` in `change_sets`.
+        Otherwise, False.
     """
-
     for cs in change_sets:
         if cs.author != recommended_dev:
             continue
@@ -145,7 +154,6 @@ def cal_accuracy(ranks, k):
         A number between 0 and 100 (inclusive).
 
     """
-
     return 100 * sum(1 for rank in ranks if rank <= k) / len(ranks)
 
 
@@ -163,14 +171,13 @@ def cal_mrr(ranks):
     float:
         A number between 0 and 100 (inclusive).
     """
-
     return 100 * sum(1 / rank for rank in ranks) / len(ranks)
 
 
 if __name__ == "__main__":
     experiments = []
     for project_name in project_list:
-        for sliding_window_size in [180, 365]:
+        for sliding_window_size in sws_list:
             experiments.append((project_name, sliding_window_size))
 
     max_k = 3

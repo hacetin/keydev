@@ -1,16 +1,19 @@
+"""
+Generates the number in result tables for RQ1.
+"""
 from joblib import Parallel, delayed
 import random
-from util import get_exp_name, load_results, project_list
+from util import get_exp_name, load_results, project_list, sws_list
 from extract_commenters import generate_date_to_top_commenters
 from collections import defaultdict
 
-random.seed(2020)
+random.seed(2020)  # To produce same accuaries for random case in different runs.
 
 
 def accuracy(set1, set2):
     """
     Calculate intersection ratio of set1 and set2 over set1.
-    For example, return 0.75 if "set1={1,2,3,4}" and "set2={1,2,3,5,6,7}"
+    For example, return 0.75 if "set1={1,2,3,4}" and "set2={1,2,3,5,6,7}".
 
     Parameters
     set1 (set):
@@ -25,14 +28,14 @@ def accuracy(set1, set2):
         Intersection ratio of set1 and set2 over set1.
     """
     if len(set1) == 0:
-        return 0
+        return 0  # To not boost accuracy
 
     return len(set1.intersection(set2)) / len(set1)
 
 
 def print_table(table):
     """
-    Prints topk accuracy table in a human readable way.
+    Print topk accuracy table in a readable way.
 
     Parameters
     ----------
@@ -40,7 +43,6 @@ def print_table(table):
         Mapping from row and column indexes to the values of the cells.
         For example, "{(0,0): 0.65,  (0,1): 0.78}"
     """
-
     rows = sorted(set(i for i, _ in table))
     cols = sorted(set(j for _, j in table))
 
@@ -73,7 +75,6 @@ def topk_table(date_to_key_developers, date_to_top_commenters):
         Mapping from row and column indexes to the values of the cells.
         For example, "{(0,0): 0.65,  (0,1): 0.78}"
     """
-
     kvalues = [1, 3, 5, 10]
     accs = {(k1, k2): [] for k1 in kvalues for k2 in kvalues if k1 <= k2}
     for date, key_developers in date_to_key_developers.items():
@@ -89,20 +90,20 @@ def topk_table(date_to_key_developers, date_to_top_commenters):
 
 def generate_date_to_intersection(date_to_results):
     """
-    Generate a mapping from date to intersection developers that date.
+    Generate a mapping from date to intersection developers of that date.
 
     Parameters
     ----------
     date_to_results (dict):
-        Mapping from date to results. Results have to include "jacks" "mavens"
+        Mapping from date to results. Results have to include "jacks", "mavens"
         and "connectors" categories at the same time.
 
     Returns
     -------
     dict:
-        Mapping from date to intersection developers that date.
+        Mapping from date to intersection developers that date. Intersection developers
+        means the developers who are jack, maven and connector at the same time.
     """
-
     date_to_intersection = {}
     for date, results in date_to_results.items():
         intersection_developers = set.intersection(
@@ -134,16 +135,25 @@ def validation(date_to_key_developers, date_to_top_commenters, date_to_developer
     Parameters
     ----------
     date_to_key_developers (dict):
-        Mapping from dates to key developers (one type of key developer such as "jacks"
+        Mapping from date to key developers (one type of key developers such as "jacks"
         or "intersection") in the sliding window ending that date.
 
     date_to_top_commenters (dict):
-        Mapping from dates to top commenters in the sliding window ending that date.
+        Mapping from date to top commenters in the sliding window ending that date.
 
     date_to_developers (dict):
-        Mapping from dates to all developers in the sliding window ending that date.
-    """
+        Mapping from date to all developers in the sliding window ending that date.
 
+    Returns
+    -------
+    dict:
+        Accuracy table of our approaches. Mapping from row and column indexes to the
+        values of the cells. For example, "{(0,0): 0.65,  (0,1): 0.78}"
+
+    dict:
+        Accuracy table of Monte Carlo simulation. Mapping from row and column indexes
+        to the values of the cells. For example, "{(0,0): 0.65,  (0,1): 0.78}"
+    """
     ## OUR APPROACH
     our_acc_table = topk_table(date_to_key_developers, date_to_top_commenters)
 
@@ -181,6 +191,26 @@ def validation(date_to_key_developers, date_to_top_commenters, date_to_developer
 
 @delayed
 def validation_wrapper(project_name, sws):
+    """
+    Wrapper to run validation method. First, find intersection developers, then
+    run the validation.
+
+    Parameters
+    ----------
+    project_name (str):
+        Name of the project.
+
+    sws (int):
+        Sliding_window_size.
+
+    Returns
+    -------
+    str:
+        NAme of the experiment
+
+    dict:
+        Mapping from each category to tuple of its topk tables.
+    """
     exp_name = get_exp_name(project_name, sws=sws)
     date_to_results = load_results(exp_name)
 
@@ -217,7 +247,7 @@ def validation_wrapper(project_name, sws):
 if __name__ == "__main__":
     experiments = []
     for project_name in project_list:
-        for sliding_window_size in [180, 365]:
+        for sliding_window_size in sws_list:
             experiments.append((project_name, sliding_window_size))
 
     outputs = Parallel(n_jobs=-1, verbose=10)(

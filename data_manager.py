@@ -1,3 +1,6 @@
+"""
+Defines classes to handle data related operations.
+"""
 from datetime import datetime, timedelta
 import json
 from util import str_to_date, max_of_day, sort_dict
@@ -31,7 +34,6 @@ class CodeChange:
     __slots__ = ["file_path", "change_type", "old_file_path"]
 
     def __init__(self, file_path, change_type, old_file_path=None):
-
         assert change_type in [
             "ADD",
             "DELETE",
@@ -81,7 +83,7 @@ class ChangeSet:
     code_changes (list):
         Code changes in the change set. Code changes should be CodeChange objects.
 
-    num_current_files (int):
+    num_files_in_project (int):
         Number of existing files in the whole project.
     """
 
@@ -97,7 +99,6 @@ class ChangeSet:
     def __init__(
         self, commit_hash, author, date, issues, code_changes, num_files_in_project
     ):
-
         assert (
             type(code_changes) == list
             and code_changes != []
@@ -193,7 +194,6 @@ class DataManager:
         """
         Initialize the DataManager object. Look at the class docstring for details.
         """
-
         self._sliding_window_size = sliding_window_size
         self._date_to_change_sets = _generate_date_to_change_sets(dataset_path)
         self._first_date = None  # First included date
@@ -219,7 +219,6 @@ class DataManager:
         datetime.datetime:
             First included date to the sliding window.
         """
-
         return self._first_date
 
     def get_last_included_date(self):
@@ -231,7 +230,6 @@ class DataManager:
         datetime.datetime:
             Last included date to the sliding window.
         """
-
         return self._last_date
 
     def get_initial_window(self):
@@ -245,7 +243,6 @@ class DataManager:
             Change sets (sorted by date in ascending order) that the first sliding
             window include.
         """
-
         self._first_date = list(self._date_to_change_sets)[0]
         self._last_date = self._first_date + timedelta(
             days=self._sliding_window_size - 1
@@ -275,7 +272,6 @@ class DataManager:
         list:
             Change sets (sorted by date in ascending order) between given dates.
         """
-
         assert start_date in self._date_to_change_sets, "start_date not in data"
         assert end_date in self._date_to_change_sets, "end_date not in data"
 
@@ -298,7 +294,6 @@ class DataManager:
         bool:
             True if sliding one more date is possible, otherwise False.
         """
-
         return self._last_date + timedelta(days=1) in self._date_to_change_sets
 
     def forward_one_day(self):
@@ -315,7 +310,6 @@ class DataManager:
         tuple:
             A tuple of 2 lists, which are change sets to add and change sets to remove.
         """
-
         if not self.can_slide():
             raise SlidingNotPossible(
                 "Not enough data to slide window one more day. Last included date is {}".format(

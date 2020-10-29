@@ -1,3 +1,6 @@
+"""
+Extracts top commenters for each sliding window.
+"""
 from data_manager import DataManager, SlidingNotPossible
 from preprocess import (
     pig_author_mapping,
@@ -14,6 +17,7 @@ from util import (
     date_to_str,
     get_dataset_path,
     project_list,
+    sws_list,
 )
 from collections import defaultdict
 
@@ -67,7 +71,6 @@ def generate_issue_to_commenters(project_name):
     dict:
         Mapping from issue ids to commenters of the issues.
     """
-
     query_results = execute_db_query(
         "data/{}.sqlite3".format(project_name),
         """
@@ -93,7 +96,7 @@ def generate_issue_to_commenters(project_name):
     return issue_to_commenters
 
 
-def generate_date_to_top_commenters(project_name, sliding_window_size):
+def generate_date_to_top_commenters(project_name, sws):
     """
     Generate a mapping from date to number of comment made until that date.
 
@@ -104,6 +107,7 @@ def generate_date_to_top_commenters(project_name, sliding_window_size):
     ----------
     project_name (str):
         Name of the project
+
     sws (int):
         Sliding_window_size, in other words number of days to include the graph.
 
@@ -113,10 +117,8 @@ def generate_date_to_top_commenters(project_name, sliding_window_size):
         Mapping from date to top commenters and their numbers of comments in the sliding
         window ending that date.
     """
-
     issue_to_commenters = generate_issue_to_commenters(project_name)
-
-    data_manager = DataManager(get_dataset_path(project_name), sliding_window_size)
+    data_manager = DataManager(get_dataset_path(project_name), sws)
 
     # Get initial change sets to add and remove
     change_sets_add = data_manager.get_initial_window()
@@ -153,9 +155,9 @@ def generate_date_to_top_commenters(project_name, sliding_window_size):
 
 
 if __name__ == "__main__":
-    # Lets extract top10 commenters into csv files to check with eyes
+    # Lets extract top10 commenters into csv files to check manually.
     for project_name in project_list:
-        for sws in [180, 365]:
+        for sws in sws_list:
             date_to_top_commenters = generate_date_to_top_commenters(project_name, sws)
 
             text = ""

@@ -1,9 +1,12 @@
+"""
+Extracts top committers for each sliding window.
+"""
 from data_manager import DataManager, SlidingNotPossible
 from util import sort_dict, highest_k, date_to_str, get_dataset_path
 from collections import defaultdict
 
 
-def generate_date_to_top_committers(project_name):
+def generate_date_to_top_committers(project_name, sws):
     """
     Generate a mapping from date to number of commits made until that date.
 
@@ -13,7 +16,10 @@ def generate_date_to_top_committers(project_name):
     Parameters
     ----------
     project_name (str):
-        Name of the project
+        Name of the project.
+
+    sws (int):
+        Sliding_window_size.
 
     Returns
     --------
@@ -22,7 +28,7 @@ def generate_date_to_top_committers(project_name):
         window ending that date.
     """
 
-    data_manager = DataManager(get_dataset_path(project_name), 365)
+    data_manager = DataManager(get_dataset_path(project_name), sws)
 
     # Get initial change sets to add and remove
     change_sets_add = data_manager.get_initial_window()
@@ -59,8 +65,9 @@ if __name__ == "__main__":
     # Lets extract top committers:
     k = 10
     for project_name in ["pig", "hive", "hadoop", "hbase", "derby", "zookeeper"]:
+        sws = 365
         text = ""
-        date_to_top_committers = generate_date_to_top_committers(project_name)
+        date_to_top_committers = generate_date_to_top_committers(project_name, sws)
         for date, dev_to_commit_count in date_to_top_committers.items():
             topk_committers = highest_k(dev_to_commit_count, k)
             text += date_to_str(date) + "," + ",".join(topk_committers) + "\n"

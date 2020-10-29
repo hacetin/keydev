@@ -1,5 +1,8 @@
+"""
+Preprocesses the raw databases, and creates JSON formatted datasets.
+"""
 import json
-from util import execute_db_query, get_dataset_path
+from util import execute_db_query, get_dataset_path, project_list
 from collections import defaultdict
 
 
@@ -46,7 +49,6 @@ def get_commit_to_codechanges(project_name):
     dict:
         Mapping from commit hash to code changes.
     """
-
     query_results = execute_db_query(
         "data/{}.sqlite3".format(project_name),
         """
@@ -77,10 +79,9 @@ def get_commits(project_name):
     Returns
     -------
     list:
-        Tuples of commit hash, author and date in temporal order.
+        Tuples of commit hash (i.e. id), author and date in temporal order.
         For example, "[(commit1, author1, 12Oct2013), (commit2, author1, 19Oct2013)]"
     """
-
     query_results = execute_db_query(
         "data/{}.sqlite3".format(project_name),
         """
@@ -106,12 +107,14 @@ def extract_change_sets(project_name, author_mapping):
     project_name (str):
         Name of the project. "<project_name>.sqlite3" has to be in data folder.
 
+    author_mapping (str):
+        Mapping from aliases to real names of developers
+
     Returns
     -------
     str:
         JSON formatted string.
     """
-
     # Get the mapping from commit hash to issue ids
     commit_to_issues = get_commit_to_issues(project_name)
 
@@ -122,24 +125,24 @@ def extract_change_sets(project_name, author_mapping):
     commits = get_commits(project_name)
 
     current_files = set()
-    json_lines = []
+    change_set_jsons = []
     prev_comparison_str = ""
     for commit_hash, author, date in commits:
         # Ignore if the commit has no code change
         if commit_hash not in commit_to_codechanges:
             continue
 
-        json_line = {}
+        change_set_dict = {}
 
         # Change set info
-        json_line["commit_hash"] = commit_hash
+        change_set_dict["commit_hash"] = commit_hash
         author = author.lower()
         author = author_mapping.get(author, author)  # Correct author name.
-        json_line["author"] = author
-        json_line["date"] = date
+        change_set_dict["author"] = author
+        change_set_dict["date"] = date
 
         # Related issues
-        json_line["issues"] = commit_to_issues.get(commit_hash, [])
+        change_set_dict["issues"] = commit_to_issues.get(commit_hash, [])
 
         # For each file name, find code changes in the change set
         fname_to_cchanges = defaultdict(list)
@@ -215,24 +218,25 @@ def extract_change_sets(project_name, author_mapping):
                     current_files.add(fpath)
 
         if extracted_changes != []:
-            json_line["code_changes"] = extracted_changes
-            json_line["num_current_files"] = len(current_files)
-            json_line_dump = json.dumps(json_line, ensure_ascii=False)
+            change_set_dict["code_changes"] = extracted_changes
+            change_set_dict["num_current_files"] = len(current_files)
+            change_set_json = json.dumps(change_set_dict, ensure_ascii=False)
 
             # Prevent same commits (only hashes are different)
-            comparison_str = json_line_dump.split('"author":')[1]
+            comparison_str = change_set_json.split('"author":')[1]
             if comparison_str != prev_comparison_str:
-                json_lines.append(json_line_dump)
+                change_set_jsons.append(change_set_json)
             prev_comparison_str = comparison_str
 
-    text = '{"change_sets": [' + ",\n".join(json_lines) + "]}"
+    text = '{"change_sets": [' + ",\n".join(change_set_jsons) + "]}"
     return text
 
 
 # # Author Mapping
-# For each dataset, we manually created a dictionary to map wrong author names to
-# correct author names as follows:
+# For each dataset, we manually created a dictionary to map different names of the same
+# author to one of his/her names
 
+# The manual procedure is as follows:
 # 1. Convert all author names to lower case
 # 2. Map author names by considering names and email addresses.
 # 3. Search name aternatives online in suspicious cases.
@@ -375,16 +379,13 @@ zookeeper_author_mapping = {
 }
 
 if __name__ == "__main__":
-    for dataset_name, author_mapping in [
-        ("pig", pig_author_mapping),
-        ("hive", hive_author_mapping),
-        ("hadoop", hadoop_author_mapping),
-        ("hbase", hbase_author_mapping),
-        ("derby", derby_author_mapping),
-        ("zookeeper", zookeeper_author_mapping),
-    ]:
+    for project in project_list:
+        author_mapping = eval("{}_author_mapping".format(project))
+
         # First, extract commits and generate a JSON formatted string.
-        text = extract_change_sets(dataset_name, author_mapping)
-        dataset_path = get_dataset_path(dataset_name)
+        text = extract_change_sets(project, author_mapping)
+
+        # Dump the extracted JSON formatted text
+        dataset_path = get_dataset_path(project)
         with open(dataset_path, "w", encoding="utf8") as f:
             f.write(text)

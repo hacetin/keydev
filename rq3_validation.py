@@ -1,4 +1,7 @@
-from util import get_exp_name, load_results, project_list
+"""
+Generates the number in result tables for RQ3.
+"""
+from util import get_exp_name, load_results, project_list, sws_list
 from extract_committers import generate_date_to_top_committers
 from math import ceil
 
@@ -51,69 +54,77 @@ def balanced_or_hero_pareto_over_time(date_to_dev_to_commit_count):
 
 def accuracy(dict1, dict2):
     """
-    Calculate accuracy for dates that both dictionaries have.
+    Calculate accuracy for the dates which are in both dictionaries.
 
     Parameters
     ----------
     dict1 (dict):
         Mapping for date and labels.
 
-    dict1 (dict):
+    dict2 (dict):
         Mapping for date and labels.
 
     Returns
     -------
     float:
-        Accuracy. In other words, intersection ratio of the labels for dates that both
-        dictionaries have.
+        Accuracy. In other words, intersection ratio of the labels for the dates which
+        are in both dictionaries.
     """
     intersection_dates = set(dict1.keys()).intersection(dict2.keys())
     num_matches = sum(1 for date in intersection_dates if dict1[date] == dict2[date])
+    accuracy = num_matches / len(intersection_dates)
 
-    return num_matches / len(intersection_dates)
+    return accuracy
 
 
 if __name__ == "__main__":
-    for project_name in project_list:
-        print(project_name)
-        our_results = load_results(get_exp_name(project_name))
+    for sws in sws_list:
+        print("*** Sliding Window Size: {} ***\n".format(sws))
+        for project_name in project_list:
+            print(project_name)
+            our_results = load_results(get_exp_name(project_name, sws=sws))
 
-        date_to_label_shapiro = {
-            date: our_results[date]["balanced_or_hero"]
-            for date in our_results
-            if our_results[date]["balanced_or_hero"]  # num of devs is not less than 3
-        }
+            date_to_label_shapiro = {
+                date: our_results[date]["balanced_or_hero"]
+                for date in our_results
+                if our_results[date][
+                    "balanced_or_hero"
+                ]  # num of devs is not less than 3
+            }
 
-        date_to_dev_to_commit_counts = generate_date_to_top_committers(project_name)
-        date_to_label_pareto = balanced_or_hero_pareto_over_time(
-            date_to_dev_to_commit_counts
-        )
-
-        num_hero_shapiro = 0
-        num_hero_pareto = 0
-        for date in date_to_label_shapiro:
-            if date_to_label_shapiro[date] == "hero":
-                num_hero_shapiro += 1
-            if date_to_label_pareto[date] == "hero":
-                num_hero_pareto += 1
-
-        hero_ratio_shapiro = 100 * num_hero_shapiro / len(date_to_label_shapiro)
-        hero_ratio_pareto = 100 * num_hero_pareto / len(date_to_label_shapiro)
-        print(
-            "Shapiro:",
-            "{:.2f}% balanced and {:.2f}% hero".format(
-                100 - hero_ratio_shapiro, hero_ratio_shapiro
-            ),
-        )
-        print(
-            "Pareto:",
-            "{:.2f}% balanced and {:.2f}% hero".format(
-                100 - hero_ratio_pareto, hero_ratio_pareto
-            ),
-        )
-        print(
-            "Accuracy: {:.2f}%".format(
-                100 * accuracy(date_to_label_shapiro, date_to_label_pareto)
+            date_to_dev_to_commit_counts = generate_date_to_top_committers(
+                project_name, sws
             )
-        )
+            date_to_label_pareto = balanced_or_hero_pareto_over_time(
+                date_to_dev_to_commit_counts
+            )
+
+            num_hero_shapiro = 0
+            num_hero_pareto = 0
+            for date in date_to_label_shapiro:
+                if date_to_label_shapiro[date] == "hero":
+                    num_hero_shapiro += 1
+                if date_to_label_pareto[date] == "hero":
+                    num_hero_pareto += 1
+
+            hero_ratio_shapiro = 100 * num_hero_shapiro / len(date_to_label_shapiro)
+            hero_ratio_pareto = 100 * num_hero_pareto / len(date_to_label_shapiro)
+            print(
+                "Shapiro:",
+                "{:.2f}% balanced and {:.2f}% hero".format(
+                    100 - hero_ratio_shapiro, hero_ratio_shapiro
+                ),
+            )
+            print(
+                "Pareto:",
+                "{:.2f}% balanced and {:.2f}% hero".format(
+                    100 - hero_ratio_pareto, hero_ratio_pareto
+                ),
+            )
+            print(
+                "Accuracy: {:.2f}%".format(
+                    100 * accuracy(date_to_label_shapiro, date_to_label_pareto)
+                )
+            )
+            print()
         print()

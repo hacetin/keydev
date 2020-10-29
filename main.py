@@ -21,7 +21,8 @@ def run_experiment(experiment_name, dataset_path, sliding_window_size):
     """
     Run experiment with default parameters and export results into a pickle file.
     First, create a graph for the inital window, then slide that window day by day.
-    Find developers, mavens, connectors and jacks for each iteration.
+    Find developers, mavens, connectors, jacks and knowledge distribution labels for
+    each iteration (day). Also, find replacements if any developers leave the project.
 
     Parameters
     ----------
@@ -30,8 +31,10 @@ def run_experiment(experiment_name, dataset_path, sliding_window_size):
 
     dataset_path (str):
         Dataset path to read data.
-    """
 
+    sliding_window_size (int):
+        Number of days included to the artifact graph.
+    """
     G = HistoryGraph(dataset_path, sliding_window_size)
 
     date_to_leaving_developers = find_leaving_developers(G)
@@ -82,8 +85,8 @@ def run_experiment(experiment_name, dataset_path, sliding_window_size):
 
 
 if __name__ == "__main__":
-    # dl  -> distance limit (using default (10) in graph.HıstoryGraph)
-    # nfl -> number of files limit (using default (50) in graph.HıstoryGraph)
+    # dl  -> distance limit (using default (10) in graph.HistoryGraph)
+    # nfl -> number of files limit (using default (50) in graph.HistoryGraph)
     # sws -> sliding window size is
     experiments = []
     for project_name in project_list:

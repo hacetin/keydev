@@ -1,3 +1,7 @@
+"""
+Includes HistoryGraph class to create artifact traceability graph and run algorithms.
+"""
+
 import networkx as nx
 import json
 import unittest
@@ -12,24 +16,24 @@ from util import max_of_day, sort_dict
 class HistoryGraph:
     """
     This class keeps track of changes in a software project.
-    The data must be supplied in "dataset_path".
+    The dataset must be supplied in "dataset_path".
 
     Attributes
     ----------
     dataset_path (str):
         Path to the dataset which will be used to construct the graph.
 
-    sliding_window_size (int):
+    sliding_window_size (int) (default = 365):
         Number of days included to the artifact graph.
 
-    distance_limit (float):
+    distance_limit (float) (default = 10.0):
         Limit used in file reachability DFS.
 
-    num_files_limit (int):
+    num_files_limit (int) (default = 50):
         Limit for handling the large change sets. The change sets that modify or change
         files more than this limit are ignored and not added to thr graph.
 
-    score_threshold (float):
+    score_threshold (float) (default = 0.000005):
         Floating number to consider the scores less than this threshold as zero (0).
 
     Example Usage
@@ -97,7 +101,6 @@ class HistoryGraph:
         # self.cache[(kind, "filter_nodes")] = nodes
 
         # return nodes
-
         return [node for node, k in self._G.nodes(data="kind") if k == kind]
 
     def _filter_edges_by_kind(self, kind):
@@ -114,7 +117,6 @@ class HistoryGraph:
         list:
             Edges whose kind is the given `kind`.
         """
-
         return [
             (node1, node2)
             for node1, node2, k in self._G.edges(data="kind")
@@ -125,7 +127,6 @@ class HistoryGraph:
         """
         Initialize the graph with the change sets in the first window.
         """
-
         change_sets_add = self._data_manager.get_initial_window()
 
         self._number_of_files_in_project = change_sets_add[-1].num_files_in_project
@@ -140,7 +141,6 @@ class HistoryGraph:
         change_sets (list):
             List of change sets (ChangeSet) to add to the graph.
         """
-
         for cs in change_sets:
             files_add_modify = []
             files_delete = []
@@ -201,7 +201,6 @@ class HistoryGraph:
         change_sets (list):
             List of change sets (ChangeSet) to remove from the graph.
         """
-
         self._remove_nodes([cs.commit_hash for cs in change_sets])
 
     def _remove_nodes(self, nodes):
@@ -214,7 +213,6 @@ class HistoryGraph:
         nodes (list):
             List of nodes to remove from the graph.
         """
-
         if nodes == []:
             return
 
@@ -231,7 +229,6 @@ class HistoryGraph:
         mapping (dict):
             Dictionary with old and new node name pairs.
         """
-
         if mapping == {}:
             return
 
@@ -240,7 +237,7 @@ class HistoryGraph:
     def _which_day(self, edge_date):
         """
         Get the number of days passed from the start date of the graph to
-        `edge_date` (including `edge_date`). For example, return 5 if the start
+        `edge_date` (including `edge_date`). For example, return 6 if the start
         date of the graph is 24 Nov 2012 and the `edge_date` is 29 Nov 2012.
 
         Parameters
@@ -254,7 +251,6 @@ class HistoryGraph:
             Number representing the days passed from to start date of the graph
             until the given date (inclusive).
         """
-
         first_date_in_graph = self._data_manager.get_first_included_date()
 
         return (edge_date - first_date_in_graph).days + 1
@@ -273,10 +269,8 @@ class HistoryGraph:
         float:
             Distance of the edge (distance = 1 / recency).
         """
-
-        # Check if the edge is between a developer and a change set.
         if edge_date == None:
-            return 0
+            return 0  # Edge is between a developer and a change set.
 
         recency = self._which_day(edge_date) / self._sliding_window_size
         return 1 / recency
@@ -291,7 +285,7 @@ class HistoryGraph:
         Parameters
         ----------
         developer (str):
-            Developer name
+            Developer name.
 
         Returns
         -------
@@ -346,7 +340,6 @@ class HistoryGraph:
             Dictionary for developers pairs and RSRD distance between them.
             For example, `{(d1,d2): 0.25, (d1,d3): 0.50, (d2,d3): 0.75}`
         """
-
         devs = set(self.get_developers())
         dev_pair2distances = defaultdict(list)
         for start in devs:
@@ -389,7 +382,7 @@ class HistoryGraph:
 
     def _sort_and_filter(self, d):
         """
-        Sort by scores in descending order.
+        Sort the given dictionary `d` by scores in descending order.
         Exclude the ones who have score less than the score threshold.
 
         Parameters
@@ -441,7 +434,6 @@ class HistoryGraph:
         """
         Update the graph day by day until the target day is the last included day
         in the graph.
-
         If sliding is not possible until the given date, this meydo will slide the
         graph until the last possible date.
 
@@ -466,7 +458,6 @@ class HistoryGraph:
     def get_file_to_devs(self):
         """
         Get a dictionary for files and developers reached them.
-
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
@@ -492,7 +483,6 @@ class HistoryGraph:
         """
         Get a dictionary for developers and the reachable files by them. For each
         developer run a DFS to find reachable files.
-
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
@@ -502,7 +492,6 @@ class HistoryGraph:
             Mapping from the developers in the artifact graph to the files reached
             by them. For example, `{d1:[f1, f2, f4], d2:[f3, f4]}`
         """
-
         if "dev_to_reachable_files" in self.cache:
             return self.cache["dev_to_reachable_files"]
 
@@ -516,7 +505,6 @@ class HistoryGraph:
     def get_dev_to_rare_files(self):
         """
         Get a dictionary for developers and their rarely reached files.
-
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
@@ -526,7 +514,6 @@ class HistoryGraph:
             Mapping from the developers in the artifact graph to the rarely reached
             files reached by them. For example, `{d1:[f1, f2], d2:[f3]}`
         """
-
         if "dev_to_rare_files" in self.cache:
             return self.cache["dev_to_rare_files"]
 
@@ -546,7 +533,6 @@ class HistoryGraph:
         Get the developer graph where developers are the nodes and distances are the
         edges. If distance is 0 between 2 developers, then there is no edge between
         them.
-
         Generate the developer graph if it is not generated yet. Otherwise return the
         pregenerated developer graph.
 
@@ -555,7 +541,6 @@ class HistoryGraph:
         networkx.Graph:
             Graph with nodes for developers and edges for RSRD values between them.
         """
-
         if "developer_graph" in self.cache:
             return self.cache["developer_graph"]
 
@@ -582,7 +567,6 @@ class HistoryGraph:
             Mapping from the developers to the list of developers who have a direct
             connection in the developer graph.
         """
-
         devG = self.get_developer_graph()
         dev_to_reachable_devs = {}
         for dev in devG:
@@ -600,7 +584,6 @@ class HistoryGraph:
         list:
             Developers (string) in the artifact graph.
         """
-
         return self._filter_nodes_by_kind("Developer")
 
     def get_files(self):
@@ -612,7 +595,6 @@ class HistoryGraph:
         list:
             Files (string) in the artifact graph.
         """
-
         return self._filter_nodes_by_kind("File")
 
     def get_num_files_in_project(self):
@@ -624,7 +606,6 @@ class HistoryGraph:
         int:
             Number of files in the project, not just in the graph.
         """
-
         return self._number_of_files_in_project
 
     def get_num_iterations(self):
@@ -638,7 +619,6 @@ class HistoryGraph:
         int:
             Number of possible iterations.
         """
-
         return self._data_manager.get_num_possible_iterations()
 
     def get_num_nodes(self):
@@ -672,9 +652,7 @@ class HistoryGraph:
         int:
             Number of reachable files
         """
-
         dev_to_reachable_files = self.get_dev_to_reachable_files()
-
         all_reachable_files = set()
         for files in dev_to_reachable_files.values():
             all_reachable_files.update(files)
@@ -690,7 +668,6 @@ class HistoryGraph:
         int:
             Number of rarely reached files.
         """
-
         dev_to_rare_files = self.get_dev_to_rare_files()
         return sum(len(files) for files in dev_to_rare_files.values())
 
@@ -714,7 +691,6 @@ class HistoryGraph:
         Get a dictionary for the jacks and their file coverage scores. The developers
         whose scores are less than the score threshold are ignored and removed from the
         dictionary.
-
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
@@ -724,7 +700,6 @@ class HistoryGraph:
             A sorted (by file coverage) dictionary for the developers and
             their file coverage scores.
         """
-
         if "jacks" in self.cache:
             return self.cache["jacks"]
 
@@ -746,9 +721,8 @@ class HistoryGraph:
         Returns
         -------
         str:
-            The name of developer
+            The name of developer.
         """
-
         dev_to_reachable_files = self.get_dev_to_reachable_files()
         num_reachable_files = self.get_num_reachable_files()
         jacks = self.get_jacks()
@@ -768,7 +742,6 @@ class HistoryGraph:
         Get a dictionary for the developers and their mavenness scores. The developers
         whose scores are less than the score threshold are ignored and removed from
         the dictionary.
-
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
@@ -778,7 +751,6 @@ class HistoryGraph:
             A sorted (by mavenness score) dictionary for the developers and
             their mavenness scores.
         """
-
         if "mavens" in self.cache:
             return self.cache["mavens"]
 
@@ -800,9 +772,8 @@ class HistoryGraph:
         Returns
         -------
         str:
-            The name of developer
+            The name of developer.
         """
-
         dev_to_rare_files = self.get_dev_to_rare_files()
         num_rare_files = self.get_num_rare_files()
         mavens = self.get_mavens()
@@ -822,7 +793,6 @@ class HistoryGraph:
         Get a dictionary for the developers and their betweenness centrality in
         developer graph. The developers whose scores are less than the score
         threshold are ignoredand removed from the dictionary.
-
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
@@ -832,7 +802,6 @@ class HistoryGraph:
             Sorted (by betweenness centrality) dictionary for the developers and
             their betweenness centrality in the developer graph.
         """
-
         if "connectors" in self.cache:
             return self.cache["connectors"]
 
@@ -853,9 +822,8 @@ class HistoryGraph:
         Returns
         -------
         str:
-            Name of developer
+            Name of developer.
         """
-
         dev_to_reachable_devs = self.get_dev_to_reachable_devs()
         num_developers = len(self.get_developers())
         connectors = self.get_connectors()
@@ -924,7 +892,6 @@ class HistoryGraph:
             developer) scores. If the number of other developers is less than or
             equal to 5, None.
         """
-
         if (developer, "replacement") in self.cache:
             return self.cache[(developer, "replacement")]
 
