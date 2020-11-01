@@ -1,0 +1,132 @@
+#banner {
+    height: fit-content;
+    color: white;
+    background-color: black;
+    padding: 0.5rem 5rem;
+    margin: 0;
+}
+
+#banner h3, h5 {
+    font-family:sans-serif;
+    padding: 0;
+    margin: 0.5rem;
+}
+
+#app-container {
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+}
+
+#control-panel {
+    display: flex;
+    flex-direction: row;
+    max-width: 100%;
+    padding: 1rem;
+    margin: 0;
+}
+
+.control-panel-box {
+    margin: 0;
+    padding: 2rem;
+    flex: 1 1;
+}
+
+#control-panel .control-panel-box:not(:first-child) {
+    border-left: 1px solid #E1E1E1;
+}
+
+#control-panel button {
+    color: white;
+    background-color: black;
+    width: 6rem;
+    margin: 3px;
+}
+
+#experiment-name-dropdown {
+    width: 12rem;
+}
+
+#chart-panel {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    padding: 1rem;
+}
+
+#chart-panel h3 {
+    font-family:sans-serif;
+    padding: 0rem;
+    border-bottom: 1px solid #E1E1E1;
+}
+
+#chart-panel h3:not(:first-child) {
+    padding-top: 2rem;
+}
+
+.chart-options-div p {
+    margin-left: 4rem;
+    margin-right: 1rem;
+}
+
+#developer-table {
+    flex: 2 1;
+}
+
+#info-p {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    flex: 1 1;
+    text-align: center;
+}
+
+.score-panel {
+    display: flex;
+    flex-direction: row;
+    /* max-height: 30rem; */
+}
+
+.score-chart-div {
+    flex: 3 2;
+    padding-left: 10px;
+}
+
+.score-table-div {
+    flex: 1 1;
+}
+
+#summary-panel {
+    display: flex;
+    flex-direction: row;
+    height: 30rem;
+}
+
+#venn-diagram {
+    flex: 1 1
+}
+
+table {
+    border-collapse: collapse;
+}
+
+th, td{
+    width: 10rem;
+    padding: 5px 15px;
+    text-align: left;
+    border-bottom: 1px solid #E1E1E1; 
+}
+
+*[data-dash-is-loading="true"]{
+    visibility: hidden;
+}
+
+*[data-dash-is-loading="true"]::before{
+    content: "Loading...";
+    display: inline-block;
+    color: red;
+    visibility: visible;
+}
