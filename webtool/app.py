@@ -262,12 +262,14 @@ def info_panel(exp, today):
     per_reachable_files = 100 * num_reachable_files / num_files
     num_rare_files = exps[exp]["results"][today]["num_rare_files"]
     per_rare_files = 100 * num_rare_files / num_files
+    balanced_or_hero = exps[exp]["results"][today].get("balanced_or_hero", "-")
 
     return html.P(
         id="info-p",
         children=[
-            "INFO: {} developers, {} files, {} ({:.2f}%) reachable files and {} ({:.2f}%) rarely reached files.".format(
+            "{} developers ({} team), {} files, {} ({:.2f}%) reachable files and {} ({:.2f}%) rarely reached files.".format(
                 num_devs,
+                balanced_or_hero,
                 num_files,
                 num_reachable_files,
                 per_reachable_files,
@@ -562,7 +564,40 @@ def chart_panel_content(exp, today, chart_range):
         score_panel(exp, today, chart_range, "mavens"),
         html.H3("Connectors"),
         score_panel(exp, today, chart_range, "connectors"),
+        html.H3("Replacements"),
+        replacement_panel(exp, today),
     ]
+
+
+def replacement_panel(exp, today):
+    """
+    Create a table for recommended replacements if any developer left the project today.
+    """
+    if not exp or not today:
+        return
+
+    replacements = exps[exp]["results"][today]["replacements"]
+    if not replacements:
+        return html.P("No one left today.")
+
+    rows = []
+    for leaving_dev, recom_dev_to_score in replacements.items():
+        row = {"Leaving Developer": leaving_dev}
+        recom_devs = list(recom_dev_to_score)
+        for i in range(3):
+            row["{}. Replacement".format(i + 1)] = "{} ({})".format(
+                recom_devs[i], float_format(recom_dev_to_score[recom_devs[i]])
+            )
+        rows.append(row)
+
+    return dash_table.DataTable(
+        id="replacement-table",
+        columns=[{"name": i, "id": i} for i in list(rows[0])],
+        data=rows,
+        style_cell={"width": "auto", "textAlign": "left"},
+        style_table={"maxHeight": "30rem", "overflowY": "scroll"},
+        style_as_list_view=True,
+    )
 
 
 def chart_panel():
@@ -687,9 +722,9 @@ def update_jacks_chart(chart_range, top_dev, today, exp):
     "number of top developers is changed".
     """
     comp_id = get_trigger_component(dash.callback_context)
+    print("LOG: callback - update_jacks_chart -> ", end="")
     print(
-        "LOG: callback - update_jacks_chart -> triggered by: {}, chart_range: {}, \
-            top_dev: {}, today: {}".format(
+        "triggered by: {}, chart_range: {}, top_dev: {}, today: {}".format(
             comp_id, chart_range, top_dev, today
         )
     )
@@ -722,9 +757,9 @@ def update_mavens_chart(chart_range, top_dev, today, exp):
     "number of top developers is changed".
     """
     comp_id = get_trigger_component(dash.callback_context)
+    print("LOG: callback - update_mavens_chart -> ", end="")
     print(
-        "LOG: callback - update_mavens_chart -> triggered by: {}, chart_range: {}, \
-            today: {}".format(
+        "triggered by: {}, chart_range: {}, today: {}".format(
             comp_id, chart_range, today
         )
     )
@@ -757,12 +792,13 @@ def update_connectors_chart(chart_range, top_dev, today, exp):
     "number of top developers is changed".
     """
     comp_id = get_trigger_component(dash.callback_context)
+    print("LOG: callback - update_connectors_chart -> ", end="")
     print(
-        "LOG: callback - update_connectors_chart -> triggered by: {}, chart_range: {}, \
-            today: {}".format(
+        "triggered by: {}, chart_range: {}, today: {}".format(
             comp_id, chart_range, today
         )
     )
+
     if today == None or exp == None:
         return
 
