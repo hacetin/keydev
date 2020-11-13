@@ -82,11 +82,11 @@ Run corresponding validation script for each RQ to generate the results shared i
 ### Extracting Statistics in the Tables
 Run the following to get scalability statistics of key developer identificaition algortihms when they called all together. This step can take hours depending on your system:
 
-`python scalability`
+`python scalability.py`
 
 For number of leaving developers, dataset details after preprocessing and average number of developers, run the following script:
 
-`python statistics`
+`python statistics.py`
 
 ## Run tests for `graph.py`, `data_manager.py` and `util.py`
 
