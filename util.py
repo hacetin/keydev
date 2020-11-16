@@ -9,7 +9,7 @@ import unittest
 import pickle
 
 
-# These parameters are used wherever dataset they are needed in the source code.
+# These parameters are used wherever they are needed in the source code.
 # So, any change here will affect everywhere (experiments, validation etc.).
 project_list = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
 sws_list = [180, 365]

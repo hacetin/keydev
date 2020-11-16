@@ -340,10 +340,10 @@ class HistoryGraph:
             Dictionary for developers pairs and RSRD distance between them.
             For example, `{(d1,d2): 0.25, (d1,d3): 0.50, (d2,d3): 0.75}`
         """
-        devs = set(self.get_developers())
+        devs = self.get_developers()
         dev_pair2distances = defaultdict(list)
-        for start in devs:
-            other_devs = devs.difference(set([start]))
+        for i, start in enumerate(devs[:-1]):  # Others found paths to the last one
+            other_devs = devs[i + 1 :]
             paths = nx.all_simple_paths(
                 self._G, source=start, target=other_devs, cutoff=4
             )
@@ -352,14 +352,11 @@ class HistoryGraph:
                 dev_pair2distances[(start, end)].append(len(path) - 1)
 
         dev_pair2rsrd = {}
-        for start, end in combinations(devs, 2):
-            dev_pair = (start, end)
-            if dev_pair in dev_pair2distances:
-                distances = dev_pair2distances[dev_pair]
-                srd = sum(1 / d for d in distances)
-                if srd != 0:
-                    rsrd = 1 / srd
-                    dev_pair2rsrd[dev_pair] = rsrd
+        for dev_pair, distances in dev_pair2distances.items():
+            srd = sum(1 / d for d in distances)
+            if srd != 0:
+                rsrd = 1 / srd
+                dev_pair2rsrd[dev_pair] = rsrd
 
         return dev_pair2rsrd
 
