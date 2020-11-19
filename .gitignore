@@ -7,4 +7,5 @@ data/*.csv
 data/*.py
 logs/*.log
 results/*.pkl
+results/*.csv
 results/*.py
