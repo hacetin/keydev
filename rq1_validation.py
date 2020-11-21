@@ -239,7 +239,18 @@ def validation_wrapper(project_name, sws):
         acc_table, monte_carlo_avg_acc_table = validation(
             date_to_key_developers, date_to_top_commenters, date_to_developers
         )
-        res_dict[category] = (acc_table, monte_carlo_avg_acc_table)
+
+        avg_improvement = (
+            sum(
+                acc1 / acc2
+                for acc1, acc2 in zip(
+                    acc_table.values(), monte_carlo_avg_acc_table.values()
+                )
+            )
+            / len(acc_table)
+        ) * 100 - 100
+
+        res_dict[category] = (acc_table, monte_carlo_avg_acc_table, avg_improvement)
 
     return exp_name, res_dict
 
@@ -256,9 +267,14 @@ if __name__ == "__main__":
 
     for exp_name, res_dict in outputs:
         print("\n\n-> {}".format(exp_name))
-        for category, (our_acc_table, monte_carlo_avg_acc_table) in res_dict.items():
+        for category, (
+            our_acc_table,
+            monte_carlo_avg_acc_table,
+            avg_improvement,
+        ) in res_dict.items():
             print("--> {}".format(category))
             print("Our Approach - Top Commenters")
             print_table(our_acc_table)
             print("Monte Carlo Simulation - Top Commenters")
             print_table(monte_carlo_avg_acc_table)
+            print("Average Improvement (Gain): {:.2f}%".format(avg_improvement))
