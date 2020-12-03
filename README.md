@@ -1,12 +1,10 @@
+# Analysing Developer Contributions using Artifact Traceability Graphs
 
-  
-  
+Software artifacts are the by-products of software development. Throughout the life cycle of a project, developers produce different artifacts such as source files and issues. We construct artifact traceability graphs with these artifacts and their relations using the data from software development and collaboration tools. Using these graphs, we analyze developer contributions because developers are the main resource to build and maintain a software project.
 
-# Identifying Key Developers using Artifact Traceability Graphs
+We study \textit{key developers}, valuable and indispensable developers, under three categories: **jacks**, **mavens** and **connectors**. A typical **jack** (of all trades) has a broad knowledge of the project and is familiar with different parts of the source code, whereas **mavens** represent the developers who are the sole experts in specific parts of the projects. **Connectors** are the developers who involve different groups of developers, like bridges between teams. Regardless of whether a key developer or not, when a developer leaves the project, another developer(**replacement or successor)**) has to take over the jobs of the leaving one. Moreover, the heterogeneous **knowledge distribution** among developers in the team might be an early warning for future problems.
 
-We study key developers under three categories: **jacks**, **mavens** and **connectors**. A typical **jack** (of all trades) has a broad knowledge of the project, they are familiar with different parts of the source code, whereas **mavens** represent the developers who are the sole experts in specific parts of the projects. **Connectors** are the developers who involve different groups of developers or teams. They are like bridges between teams.
-
-To identify key developers in a software project, we propose to use traceable links among software artifacts such as the links between change sets and files. First, we build an **artifact traceability graph**, then we define various metrics to find key developers. Also,  we propose to use artifact traecability graphs to recommend replacements (successors) for leaving developers and to evalute knowledge distribution in developmen teams. We conduct experiments on six open source projects: **Pig**, **Hive**, **Hadoop**, **HBase**, **Derby** and **Zookeeper**.
+Using **artifact traceability graphs**, we propose separate algorithms to identify different types of key developers, to find replacements for leaving developers and to evaluate knowledge distribution in a team. We conduct experiments on six open source projects: **Hadoop**, **Hive**, **Pig**, **HBase**, **Derby** and **Zookeeper**. Then, we demonstrate that the identified key developers match the top commenters up to 98\%, recommended replacements are correct up to 91\%, and identified knowledge distribution labels are compatible up to 94\% with the baseline approach.
   
 Previous works are published at **ESEC/FSE '19** [[1]](#1) and **PROMISE '20**[[2]](#2).
 
