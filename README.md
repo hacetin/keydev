@@ -10,7 +10,7 @@ Previous works are published at **ESEC/FSE '19** [[1]](#1) and **PROMISE '20**[[
 
   
 
-## Files
+## `src` Files
 
  
 -  [preprocess.py](preprocess.py): Reads data from sqlite3 databases, runs preprocessing steps, and generates a JSON file for each dataset.
@@ -39,7 +39,7 @@ Then, change the directory to the project folder.
 ## Install required packages
 Using a virtual environment is recommended while installing the packages.
 
-Python version is "3.8.5" in our experiments. `graph.py` uses "networkx 2.5" for graph operations and "scipy 1.5.2" for normality test. `main.py` uses "joblib 0.17.0" for parallel processing of the experiments.
+Python version is "3.9.1" in our experiments. `graph.py` uses "networkx 2.5" for graph operations and "scipy 1.5.4" for normality test. `main.py` uses "joblib 0.17.0" for parallel processing of the experiments.
 
 You can install them seperately or use the following command to install the correct versions of all required packages.
 
@@ -59,32 +59,32 @@ Generate JSON files.
 
 2) Run the preprocess script to generate JSON files for all 6 projects (takes a few seconds per project):
 
-`python preprocess.py`
+`python src\preprocess.py`
 
 ### Run experiments
 Run 12 experiments (2 different sliding window sizes for each project) in parallel with the default configurations given in `main.py` (same configurations given in the article).
 
-`python main.py`
+`python src\main.py`
 
 This step can take hours depending on your system. It will create a pickle file for each experiment under **results** folder to keep the key developer for each day. You can see the logs under **logs** folder.
 
 ### Run validation script
 Run corresponding validation script for each RQ to generate the results shared in the article.
 
-`python rq1_validation.py`
+`python src\rq1_validation.py`
 
-`python rq2_validation.py`
+`python src\rq2_validation.py`
 
-`python rq3_validation.py`
+`python src\rq3_validation.py`
 
 ### Extracting Statistics in the Tables
 Run the following to get scalability statistics of key developer identificaition algortihms when they called all together. This step can take hours depending on your system:
 
-`python scalability.py`
+`python src\scalability.py`
 
 For number of leaving developers, dataset details after preprocessing and average number of developers, run the following script:
 
-`python statistics.py`
+`python src\statistics.py`
 
 ## Run tests for `graph.py`, `data_manager.py` and `util.py`
 
@@ -92,11 +92,11 @@ By using a sample graph (data/test_data), we implemented unit tests for `graph.p
 
 Each script has own tests inside it. To run these tests, you can call them separately.
 
-`python graph.py`
+`python src\graph.py`
 
-`python data_manager.py`
+`python src\data_manager.py`
 
-`python util.py`
+`python src\util.py`
 
 You can inspect the sample graph step by step in [data/test_data/sample_graph_steps.pdf](data/test_data/sample_graph_steps.pdf).
 
