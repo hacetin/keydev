@@ -1,11 +1,11 @@
 # Analysing Developer Contributions using Artifact Traceability Graphs
 
-Software artifacts are the by-products of software development. Throughout the life cycle of a project, developers produce different artifacts such as source files and issues. We construct artifact traceability graphs with these artifacts and their relations using the data from software development and collaboration tools. Using these graphs, we analyze developer contributions because developers are the main resource to build and maintain a software project.
+Software artifacts are like the by-products of the development process. Throughout the life cycle of a project, developers produce different artifacts such as source files and bug reports. To analyze developer contributions, we construct artifact traceability graphs with these artifacts and their relations using the data from software development and collaboration tools.
 
-We study \textit{key developers}, valuable and indispensable developers, under three categories: **jacks**, **mavens** and **connectors**. A typical **jack** (of all trades) has a broad knowledge of the project and is familiar with different parts of the source code, whereas **mavens** represent the developers who are the sole experts in specific parts of the projects. **Connectors** are the developers who involve different groups of developers, like bridges between teams. Regardless of whether a key developer or not, when a developer leaves the project, another developer(**replacement or successor)**) has to take over the jobs of the leaving one. Moreover, the heterogeneous **knowledge distribution** among developers in the team might be an early warning for future problems.
+Developers are the main resource to build and maintain software projects. Since they keep the knowledge of the projects, developer turnover is a critical risk for software projects. From different viewpoints, some developers can be valuable and indispensable for the project. They are the key developers of the project, and identifying them is a crucial task for managerial decisions. Regardless of whether they are key developers or not, when any developer leaves the project, the work should be transferred to another developer. Even though all developers continue to work on the project, the knowledge distribution can be imbalanced among developers. Evaluating knowledge distribution is important since it might be an early warning for future problems.
 
-Using **artifact traceability graphs**, we propose separate algorithms to identify different types of key developers, to find replacements for leaving developers and to evaluate knowledge distribution in a team. We conduct experiments on six open source projects: **Hadoop**, **Hive**, **Pig**, **HBase**, **Derby** and **Zookeeper**. Then, we demonstrate that the identified key developers match the top commenters up to 98\%, recommended replacements are correct up to 91\%, and identified knowledge distribution labels are compatible up to 94\% with the baseline approach.
-  
+We employ algorithms on artifact traceability graphs to identify key developers, recommend replacements for leaving developers and evaluate knowledge distribution among developers. We conduct experiments on six open source projects: Hadoop, Hive, Pig, HBase, Derby and Zookeeper. Then, we demonstrate that the identified key developers match the top commenters up to 98%, recommended replacements are correct up to 91% and identified knowledge distribution labels are compatible up to 94% with the baseline approach.
+
 Previous works are published at **ESEC/FSE '19** [[1]](#1) and **PROMISE '20**[[2]](#2).
 
   
@@ -102,9 +102,9 @@ You can inspect the sample graph step by step in [data/test_data/sample_graph_st
 
 ## Web Tool
 
-We also provide a proof of concept tool under "webtool" folder. This tool uses the pickle files in the "results" folder. Before using it, you must run the experiments.
+We also provide a proof of concept tool under "webtool" folder. This tool uses the pickle files in the "results" folder. Before using it, you must run the experiments. How to run the tool:
 
-1. Create a virtual environment
+1. Create a virtual environment.
 2. Install dash and its dependencies:
 `pip install dash==1.18.1`
 3. Run the app:
