@@ -104,12 +104,11 @@ You can inspect the sample graph step by step in [data/test_data/sample_graph_st
 
 We also provide a proof of concept tool under "webtool" folder. This tool uses the pickle files in the "results" folder. Before using it, you must run the experiments. How to run the tool:
 
-1. Create a virtual environment.
-2. Install dash and its dependencies:
+1. Install dash and its dependencies (using virtual environment is recommended):
 `pip install dash==1.18.1`
-3. Run the app:
+2. Run the app:
 `python app.py`
-4. The app will be running on `http://127.0.0.1:8050/`
+3. The app will be running on `http://127.0.0.1:8050/`
 
 PS: Installing dash 1.18.1 should install its dependencies. In case you have any problem, try to install from "webtool\requirements.txt":
 `pip install -r webtool\requirements.txt`
