@@ -7,8 +7,6 @@ from util import get_exp_name, load_results, project_list, sws_list
 from extract_commenters import generate_date_to_top_commenters
 from collections import defaultdict
 
-random.seed(2020)  # To produce same accuaries for random case in different runs.
-
 
 def accuracy(set1, set2):
     """

@@ -8,8 +8,6 @@ import random
 from joblib import Parallel, delayed
 from util import get_exp_name, load_results, get_dataset_path, project_list, sws_list
 
-random.seed(2020)  # To produce same accuaries for random case in different runs.
-
 
 @delayed
 def validation(project_name, sliding_window_size, check_days, max_k, random_val):
