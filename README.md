@@ -1,4 +1,4 @@
-# Analysing Developer Contributions using Artifact Traceability Graphs
+# Analyzing Developer Contributions using Artifact Traceability Graphs
 
 Software artifacts are like the by-products of the development process. Throughout the life cycle of a project, developers produce different artifacts such as source files and bug reports. To analyze developer contributions, we construct artifact traceability graphs with these artifacts and their relations using the data from software development and collaboration tools.
 
