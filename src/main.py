@@ -56,6 +56,7 @@ def run_experiment(experiment_name, dataset_path, sliding_window_size):
         date = G.get_last_included_date()
         date_to_results[date] = {
             "developers": G.get_developers(),
+            "top_committers": G.get_top_committers(),
             "jacks": G.get_jacks(),
             "mavens": G.get_mavens(),
             "connectors": G.get_connectors(),

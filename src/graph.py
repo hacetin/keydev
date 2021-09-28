@@ -833,10 +833,26 @@ class HistoryGraph:
                 return connector
 
     #
+    #  TOP COMMITTERS
+    #
+
+    def _get_num_commits(self, developer):
+        return sum(
+            1 for edge in self._G.edges(developer, data="kind") if edge[2] == "commit"
+        )
+
+    def get_top_committers(self):
+        dev_to_num_commits = {}
+        for dev in self.get_developers():
+            dev_to_num_commits[dev] = self._get_num_commits(dev)
+
+        return self._sort_and_filter(dev_to_num_commits)
+
+    #
     #  BALANCED OR HERO
     #
 
-    def balanced_or_hero(self):
+    def balanced_or_hero(self, alpha=0.05):
         """
         Test if the tean is balanced or hero team according to Shapiro-Wilk test.
         If the test reject the H0 (the file coverages are normally distributed),
@@ -858,7 +874,6 @@ class HistoryGraph:
             return None
 
         knowledge_list = list(dev_to_knowledge.values())
-        alpha = 0.05
         stat, p = shapiro(knowledge_list)
 
         if p > alpha:
@@ -929,7 +944,7 @@ class TestHistoryGraph(unittest.TestCase):
 
         """
         Compare the given dictinaries
-        Ignore the orders for lists.
+        Ignore order for lists.
         """
 
         def compare_dicts(d1_, d2_):
@@ -956,6 +971,25 @@ class TestHistoryGraph(unittest.TestCase):
             return Counter(l1_) == Counter(l2_)
 
         return compare_dicts(d1, d2)
+
+    def test_top_committers(self):
+        G = HistoryGraph(
+            "data/test_data/sample_graph.json",
+            sliding_window_size=300,
+            distance_limit=10,
+        )
+        i = 1
+        result = {}
+        while True:
+            top_committer = G.get_top_committers()
+            result[str(i)] = top_committer
+            i += 1
+            if not G.forward_graph_one_day():
+                break
+
+        with open("data/test_data/sample_top_committers.json", "r") as f:
+            sample_result = json.load(f)
+        assert result == sample_result, "Wrong result"
 
     def test_reachable_files(self):
         G = HistoryGraph(
@@ -995,7 +1029,7 @@ class TestHistoryGraph(unittest.TestCase):
         with open("data/test_data/sample_mavens.json", "r") as f:
             sample_result = json.load(f)
 
-        assert TestHistoryGraph.compare(result, sample_result), "Wrong result"
+        assert result == sample_result, "Wrong result"
 
     def test_connectors(self):
         G = HistoryGraph(
@@ -1015,7 +1049,7 @@ class TestHistoryGraph(unittest.TestCase):
         with open("data/test_data/sample_connectors.json", "r") as f:
             sample_result = json.load(f)
 
-        assert TestHistoryGraph.compare(result, sample_result), "Wrong result"
+        assert result == sample_result, "Wrong result"
 
     def test_jacks(self):
         G = HistoryGraph(
@@ -1035,7 +1069,7 @@ class TestHistoryGraph(unittest.TestCase):
         with open("data/test_data/sample_jacks.json", "r") as f:
             sample_result = json.load(f)
 
-        assert TestHistoryGraph.compare(result, sample_result), "Wrong result"
+        assert result == sample_result, "Wrong result"
 
     def test_reachable_files_specific_date(self):
         G = HistoryGraph(
