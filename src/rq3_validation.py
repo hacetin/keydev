@@ -1,7 +1,7 @@
 """
 Generates the number in result tables for RQ3.
 """
-from util import get_exp_name, load_results, project_list, sws_list
+from util import get_exp_name, load_results, project_list, sws_list, alpha_list
 from extract_committers import generate_date_to_top_committers
 from math import ceil
 
@@ -82,49 +82,52 @@ if __name__ == "__main__":
         print("*** Sliding Window Size: {} ***\n".format(sws))
         for project_name in project_list:
             print(project_name)
-            our_results = load_results(get_exp_name(project_name, sws=sws))
+            for alpha in alpha_list:
+                print("Alpha: {}".format(alpha))
+                our_results = load_results(get_exp_name(project_name, sws=sws))
 
-            date_to_label_shapiro = {
-                date: our_results[date]["balanced_or_hero"]
-                for date in our_results
-                if our_results[date][
-                    "balanced_or_hero"
-                ]  # num of devs is not less than 3
-            }
+                date_to_label_shapiro = {
+                    date: our_results[date]["balanced_or_hero_{}".format(alpha)]
+                    for date in our_results
+                    if our_results[date][
+                        "balanced_or_hero_{}".format(alpha)
+                    ]  # num of devs is not less than 3
+                }
 
-            date_to_dev_to_commit_counts = generate_date_to_top_committers(
-                project_name, sws
-            )
-            date_to_label_pareto = balanced_or_hero_pareto_over_time(
-                date_to_dev_to_commit_counts
-            )
-
-            num_hero_shapiro = 0
-            num_hero_pareto = 0
-            for date in date_to_label_shapiro:
-                if date_to_label_shapiro[date] == "hero":
-                    num_hero_shapiro += 1
-                if date_to_label_pareto[date] == "hero":
-                    num_hero_pareto += 1
-
-            hero_ratio_shapiro = 100 * num_hero_shapiro / len(date_to_label_shapiro)
-            hero_ratio_pareto = 100 * num_hero_pareto / len(date_to_label_shapiro)
-            print(
-                "Shapiro:",
-                "{:.2f}% balanced and {:.2f}% hero".format(
-                    100 - hero_ratio_shapiro, hero_ratio_shapiro
-                ),
-            )
-            print(
-                "Pareto:",
-                "{:.2f}% balanced and {:.2f}% hero".format(
-                    100 - hero_ratio_pareto, hero_ratio_pareto
-                ),
-            )
-            print(
-                "Accuracy: {:.2f}%".format(
-                    100 * accuracy(date_to_label_shapiro, date_to_label_pareto)
+                date_to_dev_to_commit_counts = generate_date_to_top_committers(
+                    project_name, sws
                 )
-            )
+                date_to_label_pareto = balanced_or_hero_pareto_over_time(
+                    date_to_dev_to_commit_counts
+                )
+
+                num_hero_shapiro = 0
+                num_hero_pareto = 0
+                for date in date_to_label_shapiro:
+                    if date_to_label_shapiro[date] == "hero":
+                        num_hero_shapiro += 1
+                    if date_to_label_pareto[date] == "hero":
+                        num_hero_pareto += 1
+
+                hero_ratio_shapiro = 100 * num_hero_shapiro / len(date_to_label_shapiro)
+                hero_ratio_pareto = 100 * num_hero_pareto / len(date_to_label_shapiro)
+                print(
+                    "Shapiro:",
+                    "{:.2f}% balanced and {:.2f}% hero".format(
+                        100 - hero_ratio_shapiro, hero_ratio_shapiro
+                    ),
+                )
+                print(
+                    "Pareto:",
+                    "{:.2f}% balanced and {:.2f}% hero".format(
+                        100 - hero_ratio_pareto, hero_ratio_pareto
+                    ),
+                )
+                print(
+                    "Accuracy: {:.2f}%".format(
+                        100 * accuracy(date_to_label_shapiro, date_to_label_pareto)
+                    )
+                )
+                print()
             print()
         print()

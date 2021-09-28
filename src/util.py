@@ -13,6 +13,7 @@ import pickle
 # So, any change here will affect everywhere (experiments, validation etc.).
 project_list = ["hadoop", "hive", "pig", "hbase", "derby", "zookeeper"]
 sws_list = [180, 365]
+alpha_list = [0.01, 0.05]
 
 # This is the default date format in sqlite3 databases. Every part of the code uses
 # the same date format

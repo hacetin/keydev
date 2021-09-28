@@ -86,9 +86,9 @@ def topk_table(date_to_key_developers, date_to_top_commenters):
     return avg_accs
 
 
-def generate_date_to_intersection(date_to_results):
+def generate_date_to_union(date_to_results):
     """
-    Generate a mapping from date to intersection developers of that date.
+    Generate a mapping from date to union developers of that date.
 
     Parameters
     ----------
@@ -99,27 +99,36 @@ def generate_date_to_intersection(date_to_results):
     Returns
     -------
     dict:
-        Mapping from date to intersection developers that date. Intersection developers
-        means the developers who are jack, maven and connector at the same time.
+        Mapping from date to union developers of that date. Union developers
+        mean the developers who are at least one of jack, maven or connector.
     """
-    date_to_intersection = {}
+    date_to_union = {}
     for date, results in date_to_results.items():
-        intersection_developers = set.intersection(
+        union_developers = set.union(
             set(results["jacks"].keys()),
             set(results["mavens"].keys()),
             set(results["connectors"].keys()),
         )
 
-        # Let's sort the intersection developers according to jack score
-        # Jacks are already sorted
-        sorted_intersection_developers = {
-            dev: score
-            for dev, score in results["jacks"].items()
-            if dev in intersection_developers
-        }
-        date_to_intersection[date] = sorted_intersection_developers
+        # Let's sort the union developers according to sum of thier scores in three categories
+        dev_and_score = []
+        for dev in union_developers:
+            dev_and_score.append(
+                (
+                    dev,
+                    results["jacks"].get(dev, 0)
+                    + results["mavens"].get(dev, 0)
+                    + results["connectors"].get(dev, 0),
+                )
+            )
 
-    return date_to_intersection
+        sorted_union_developers = {
+            dev: score
+            for dev, score in sorted(dev_and_score, key=lambda x: x[1], reverse=True)
+        }
+        date_to_union[date] = sorted_union_developers
+
+    return date_to_union
 
 
 def validation(date_to_key_developers, date_to_top_commenters, date_to_developers):
@@ -212,10 +221,10 @@ def validation_wrapper(project_name, sws):
     exp_name = get_exp_name(project_name, sws=sws)
     date_to_results = load_results(exp_name)
 
-    # Add intersection to results
-    date_to_intersection = generate_date_to_intersection(date_to_results)
+    # Add union to results
+    date_to_union = generate_date_to_union(date_to_results)
     for date in date_to_results:
-        date_to_results[date]["intersection"] = date_to_intersection[date]
+        date_to_results[date]["union"] = date_to_union[date]
 
     date_to_top_commenters = generate_date_to_top_commenters(project_name, sws)
     date_to_top_commenters = {
@@ -227,7 +236,7 @@ def validation_wrapper(project_name, sws):
         date: results["developers"] for date, results in date_to_results.items()
     }
 
-    res_dict = {"jacks": (), "intersection": ()}
+    res_dict = {"jacks": (), "union": (), "top_committers": ()}
     for category in res_dict:
         date_to_key_developers = {
             date: list(results[category].keys())

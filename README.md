@@ -43,7 +43,7 @@ Python version is "3.9.1" in our experiments. `graph.py` uses "networkx 2.5" for
 
 You can install them seperately or use the following command to install the correct versions of all required packages.
 
-`pip install -r requirements.txt`
+`pip3 install -r requirements.txt`
 
 ## Reproduce results
 
@@ -59,63 +59,59 @@ Generate JSON files.
 
 2) Run the preprocess script to generate JSON files for all 6 projects (takes a few seconds per project):
 
-`python src\preprocess.py`
+`python3 src/preprocess.py`
 
 ### Run experiments
 Run 12 experiments (2 different sliding window sizes for each project) in parallel with the default configurations given in `main.py` (same configurations given in the article).
 
-`python src\main.py`
+`python3 src/main.py`
 
 This step can take hours depending on your system. It will create a pickle file for each experiment under **results** folder to keep the key developer for each day. You can see the logs under **logs** folder.
 
 ### Run validation script
 Run corresponding validation script for each RQ to generate the results shared in the article.
 
-`python src\rq1_validation.py`
+`python3 src/rq1_validation.py`
 
-`python src\rq2_validation.py`
+`python3 src/rq2_validation.py`
 
-`python src\rq3_validation.py`
+`python3 src/rq3_validation.py`
 
 ### Extracting Statistics in the Tables
 Run the following to get scalability statistics of key developer identificaition algortihms when they called all together. This step can take hours depending on your system:
 
-`python src\scalability.py`
+`python3 src/scalability.py`
 
 For number of leaving developers, dataset details after preprocessing and average number of developers, run the following script:
 
-`python src\statistics.py`
+`python3 src/statistics.py`
 
 ## Run tests for `graph.py`, `data_manager.py` and `util.py`
-
 By using a sample graph (data/test_data), we implemented unit tests for `graph.py` and `data_manager.py`. Also, we implemented tests for the functions in `util.py`.
 
 Each script has own tests inside it. To run these tests, you can call them separately.
 
-`python src\graph.py`
+`python3 src/graph.py`
 
-`python src\data_manager.py`
+`python3 src/data_manager.py`
 
-`python src\util.py`
+`python3 src/util.py`
 
 You can inspect the sample graph step by step in [data/test_data/sample_graph_steps.pdf](data/test_data/sample_graph_steps.pdf).
 
 ## Web Tool
-
 We also provide a proof of concept tool under "webtool" folder. This tool uses the pickle files in the "results" folder. Before using it, you must run the experiments. How to run the tool:
 
 1. Install dash and its dependencies (using virtual environment is recommended):
-`pip install dash==1.18.1`
+`pip3 install dash==1.18.1`
 2. Run the app:
-`python app.py`
+`python3 app.py`
 3. The app will be running on `http://127.0.0.1:8050/`
 
 PS: Installing dash 1.18.1 should install its dependencies. In case you have any problem, try to install from "webtool\requirements.txt":
-`pip install -r webtool\requirements.txt`
+`pip3 install -r webtool\requirements.txt`
 
 ## References
-
-
 <a  id="1">[1]</a> H. Alperen Cetin. 2019. Identifying the most valuable developers using artifact traceability graphs. In _Proceedings of the 2019 27th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering_ (_ESEC/FSE 2019_). Association for Computing Machinery, New York, NY, USA, 1196–1198. DOI:https://doi.org/10.1145/3338906.3342487
 
 <a  id="2">[2]</a> H. Alperen Çetin and Eray Tüzün. 2020. Identifying Key Developers using Artifact Traceability Graphs. In Proceedings of the 16th ACM International Conference on Predictive Models and Data Analytics in Software Engineering (PROMISE ’20), November 8–9, 2020, Virtual, USA. ACM, New York, NY, USA, 10 pages. https://doi.org/10.1145/3416508.3417116

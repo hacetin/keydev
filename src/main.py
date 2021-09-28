@@ -11,6 +11,7 @@ from util import (
     get_dataset_path,
     project_list,
     sws_list,
+    alpha_list,
 )
 from joblib import Parallel, delayed
 from datetime import datetime
@@ -56,6 +57,7 @@ def run_experiment(experiment_name, dataset_path, sliding_window_size):
         date = G.get_last_included_date()
         date_to_results[date] = {
             "developers": G.get_developers(),
+            "top_committers": G.get_top_committers(),
             "jacks": G.get_jacks(),
             "mavens": G.get_mavens(),
             "connectors": G.get_connectors(),
@@ -65,12 +67,16 @@ def run_experiment(experiment_name, dataset_path, sliding_window_size):
             "num_files": G.get_num_files_in_project(),
             "num_reachable_files": G.get_num_reachable_files(),
             "num_rare_files": G.get_num_rare_files(),
-            "balanced_or_hero": G.balanced_or_hero(),
             "replacements": {
                 dev: G.find_replacement(dev)
                 for dev in date_to_leaving_developers.get(date, [])
             },
         }
+
+        for alpha in alpha_list:
+            date_to_results[date][
+                "balanced_or_hero_{}".format(alpha)
+            ] = G.balanced_or_hero(alpha=alpha)
 
         print_log("{} -> {} nodes\n".format(step, G.get_num_nodes()), log_path)
 
