@@ -81,15 +81,16 @@ if __name__ == "__main__":
     for sws in sws_list:
         print("*** Sliding Window Size: {} ***\n".format(sws))
         for project_name in project_list:
-            for alpha_value in alpha_list:
-                print(project_name)
+            print(project_name)
+            for alpha in alpha_list:
+                print("Alpha: {}".format(alpha))
                 our_results = load_results(get_exp_name(project_name, sws=sws))
 
                 date_to_label_shapiro = {
-                    date: our_results[date]["balanced_or_hero_{}".format(alpha_value)]
+                    date: our_results[date]["balanced_or_hero_{}".format(alpha)]
                     for date in our_results
                     if our_results[date][
-                        "balanced_or_hero_{}".format(alpha_value)
+                        "balanced_or_hero_{}".format(alpha)
                     ]  # num of devs is not less than 3
                 }
 
