@@ -86,7 +86,7 @@ if __name__ == "__main__":
                 print("Alpha: {}".format(alpha))
                 our_results = load_results(get_exp_name(project_name, sws=sws))
 
-                date_to_label_shapiro = {
+                date_to_label_our = {
                     date: our_results[date]["balanced_or_hero_{}".format(alpha)]
                     for date in our_results
                     if our_results[date][
@@ -101,20 +101,20 @@ if __name__ == "__main__":
                     date_to_dev_to_commit_counts
                 )
 
-                num_hero_shapiro = 0
+                num_hero_our = 0
                 num_hero_pareto = 0
-                for date in date_to_label_shapiro:
-                    if date_to_label_shapiro[date] == "hero":
-                        num_hero_shapiro += 1
+                for date in date_to_label_our:
+                    if date_to_label_our[date] == "hero":
+                        num_hero_our += 1
                     if date_to_label_pareto[date] == "hero":
                         num_hero_pareto += 1
 
-                hero_ratio_shapiro = 100 * num_hero_shapiro / len(date_to_label_shapiro)
-                hero_ratio_pareto = 100 * num_hero_pareto / len(date_to_label_shapiro)
+                hero_ratio_our = 100 * num_hero_our / len(date_to_label_our)
+                hero_ratio_pareto = 100 * num_hero_pareto / len(date_to_label_our)
                 print(
-                    "Shapiro:",
+                    "Our Approach:",
                     "{:.2f}% balanced and {:.2f}% hero".format(
-                        100 - hero_ratio_shapiro, hero_ratio_shapiro
+                        100 - hero_ratio_our, hero_ratio_our
                     ),
                 )
                 print(
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                 )
                 print(
                     "Accuracy: {:.2f}%".format(
-                        100 * accuracy(date_to_label_shapiro, date_to_label_pareto)
+                        100 * accuracy(date_to_label_our, date_to_label_pareto)
                     )
                 )
                 print()

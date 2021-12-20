@@ -7,7 +7,7 @@ import json
 import unittest
 from itertools import combinations
 from data_manager import DataManager, SlidingNotPossible
-from scipy.stats import shapiro
+from scipy.stats import shapiro, kstest, skew
 from collections import defaultdict
 from datetime import datetime
 from util import max_of_day, sort_dict
@@ -852,6 +852,39 @@ class HistoryGraph:
     #  BALANCED OR HERO
     #
 
+    def _is_dist_normal(self, knowledge_list, alpha=0.05):
+        """
+        H0: The "knowledge_list" is normally distributed
+        Returns
+        -------
+        bool:
+            "false" if the test rejects H0, else "true"
+        """
+        _, p = shapiro(knowledge_list)
+
+        return p > alpha
+
+    def _is_dist_uniform(self, knowledge_list, alpha=0.05):
+        """
+        H0: The "knowledge_list" is uniformly distributed
+        Returns
+        -------
+        bool:
+            "false" if the test rejects H0, else "true"
+        """
+        _, p = kstest(knowledge_list, "uniform")
+
+        return p > alpha
+
+    def _is_dist_not_right_skewed(self, knowledge_list, skewness_limit=1):
+        """
+        Returns
+        -------
+        bool:
+            "true" if the skewness is less than "skewness_limit", else "false"
+        """
+        return skew(knowledge_list) < skewness_limit
+
     def balanced_or_hero(self, alpha=0.05):
         """
         Test if the tean is balanced or hero team according to Shapiro-Wilk test.
@@ -874,12 +907,15 @@ class HistoryGraph:
             return None
 
         knowledge_list = list(dev_to_knowledge.values())
-        stat, p = shapiro(knowledge_list)
 
-        if p > alpha:
-            return "balanced"  # Gaussian-like
+        if (
+            self._is_dist_uniform(knowledge_list, alpha)
+            or self._is_dist_normal(knowledge_list, alpha)
+            or self._is_dist_not_right_skewed(knowledge_list)
+        ):
+            return "balanced"
         else:
-            return "hero"  # Reject
+            return "hero"
 
     #
     #  REPLACEMENT / SUCCESSOR
