@@ -267,7 +267,7 @@ def info_panel(exp, today):
     return html.P(
         id="info-p",
         children=[
-            "{} developers ({} team), {} files, {} ({:.2f}%) reachable files and {} ({:.2f}%) rarely reached files.".format(
+            "{} developers ({} team), {} files, {} ({:.2f}%) reachable files and {} ({:.2f}%) rarely reachable files.".format(
                 num_devs,
                 balanced_or_hero,
                 num_files,

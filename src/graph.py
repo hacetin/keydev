@@ -501,14 +501,14 @@ class HistoryGraph:
 
     def get_dev_to_rare_files(self):
         """
-        Get a dictionary for developers and their rarely reached files.
+        Get a dictionary for developers and their rarely reachable files.
         Generate the dictionary if it is not generated yet. Otherwise return the
         pregenerated dictionary.
 
         Returns
         -------
         dict:
-            Mapping from the developers in the artifact graph to the rarely reached
+            Mapping from the developers in the artifact graph to the rarely reachable
             files reached by them. For example, `{d1:[f1, f2], d2:[f3]}`
         """
         if "dev_to_rare_files" in self.cache:
@@ -658,12 +658,12 @@ class HistoryGraph:
 
     def get_num_rare_files(self):
         """
-        Get the number of rarely reached files.
+        Get the number of rarely reachable files.
 
         Returns
         -------
         int:
-            Number of rarely reached files.
+            Number of rarely reachable files.
         """
         dev_to_rare_files = self.get_dev_to_rare_files()
         return sum(len(files) for files in dev_to_rare_files.values())
@@ -764,7 +764,7 @@ class HistoryGraph:
     def find_last_sig_maven(self):
         """
         Get the name of the last significant maven according to Pareto principle
-        on rarely reached files in the artifact graph.
+        on rarely reachable files in the artifact graph.
 
         Returns
         -------
