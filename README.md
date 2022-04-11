@@ -1,4 +1,4 @@
-# Analyzing Developer Contributions using Artifact Traceability Graphs
+# Analyzing Developer Contributions using Artifact Traceability Graphs [[1]](#1)
 
 Software artifacts are like the by-products of the development process. Throughout the life cycle of a project, developers produce different artifacts such as source files and bug reports. To analyze developer contributions, we construct artifact traceability graphs with these artifacts and their relations using the data from software development and collaboration tools.
 
@@ -6,7 +6,7 @@ Developers are the main resource to build and maintain software projects. Since 
 
 We employ algorithms on artifact traceability graphs to identify key developers, recommend replacements for leaving developers and evaluate knowledge distribution among developers. We conduct experiments on six open source projects: Hadoop, Hive, Pig, HBase, Derby and Zookeeper. Then, we demonstrate that the identified key developers match the top commenters up to 98%, recommended replacements are correct up to 91% and identified knowledge distribution labels are compatible up to 94% with the baseline approach.
 
-Previous works are published at **ESEC/FSE '19** [[1]](#1) and **PROMISE '20**[[2]](#2).
+Previous works are published at **ESEC/FSE '19** [[2]](#2) and **PROMISE '20**[[3]](#3).
 
   
 
@@ -49,7 +49,7 @@ You can install them seperately or use the following command to install the corr
 
 ### Preprocess
 Generate JSON files.
-1) Download Hadoop, Hive, Pig, HBase, Derby and Zookeeper datasets [[3]](#3) from [https://bit.ly/2wukCHc](https://bit.ly/2wukCHc), and extract the following files into **data** folder:
+1) Download Hadoop, Hive, Pig, HBase, Derby and Zookeeper datasets [[4]](#4) from [https://bit.ly/2wukCHc](https://bit.ly/2wukCHc), and extract the following files into **data** folder:
 - hadoop.sqlite3
 - hive.sqlite3
 - pig.sqlite3
@@ -112,10 +112,12 @@ PS: Installing dash 1.18.1 should install its dependencies. In case you have any
 `pip3 install -r webtool\requirements.txt`
 
 ## References
-<a  id="1">[1]</a> H. Alperen Cetin. 2019. Identifying the most valuable developers using artifact traceability graphs. In _Proceedings of the 2019 27th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering_ (_ESEC/FSE 2019_). Association for Computing Machinery, New York, NY, USA, 1196–1198. DOI:https://doi.org/10.1145/3338906.3342487
+<a  id="1">[1]</a> Çetin, H.A., Tüzün, E. Analyzing developer contributions using artifact traceability graphs. Empir Software Eng 27, 77 (2022). https://doi.org/10.1007/s10664-022-10129-2
 
-<a  id="2">[2]</a> H. Alperen Çetin and Eray Tüzün. 2020. Identifying Key Developers using Artifact Traceability Graphs. In Proceedings of the 16th ACM International Conference on Predictive Models and Data Analytics in Software Engineering (PROMISE ’20), November 8–9, 2020, Virtual, USA. ACM, New York, NY, USA, 10 pages. https://doi.org/10.1145/3416508.3417116
+<a  id="1">[2]</a> H. Alperen Cetin. 2019. Identifying the most valuable developers using artifact traceability graphs. In _Proceedings of the 2019 27th ACM Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software Engineering_ (_ESEC/FSE 2019_). Association for Computing Machinery, New York, NY, USA, 1196–1198. DOI:https://doi.org/10.1145/3338906.3342487
+
+<a  id="2">[3]</a> H. Alperen Çetin and Eray Tüzün. 2020. Identifying Key Developers using Artifact Traceability Graphs. In Proceedings of the 16th ACM International Conference on Predictive Models and Data Analytics in Software Engineering (PROMISE ’20), November 8–9, 2020, Virtual, USA. ACM, New York, NY, USA, 10 pages. https://doi.org/10.1145/3416508.3417116
 
 Link to the article: [https://www.researchgate.net/publication/343712903_Identifying_Key_Developers_using_Artifact_Traceability_Graphs](https://www.researchgate.net/publication/343712903_Identifying_Key_Developers_using_Artifact_Traceability_Graphs)
 
-<a  id="3">[3]</a> Michael Rath and Patrick Mäder. 2019. The SEOSS 33 dataset—Requirements, bug reports, code history, and trace links for entire projects. Data in brief 25 (2019), 104005.
+<a  id="3">[4]</a> Michael Rath and Patrick Mäder. 2019. The SEOSS 33 dataset—Requirements, bug reports, code history, and trace links for entire projects. Data in brief 25 (2019), 104005.
